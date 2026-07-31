@@ -1,0 +1,812 @@
+{
+  "schemaVersion": 1,
+  "name": "x64dbg MCP deterministic E2E corpus",
+  "artifactRoot": "tools/bin/e2e",
+  "supportFiles": [
+    "tests/fixtures/e2e/README.md",
+    "tests/fixtures/e2e/module_api.h",
+    "tests/fixtures/e2e/workdirs/launch_тест/cwd_marker.txt"
+  ],
+  "fixtures": [
+    {
+      "id": "launch_contract",
+      "scenario": "launch-contract",
+      "description": "Validates Unicode arguments, working directory, environment and an intentional non-zero exit code.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["reads-environment", "reads-cwd"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/launch_contract.c"],
+        "output": "tools/bin/e2e/{arch}/launch_contract.exe"
+      },
+      "runtime": [
+        {
+          "name": "unicode-args-cwd-env-exit",
+          "args": ["--message", "Привет-世界-🙂", "--exit", "37"],
+          "cwd": "tests/fixtures/e2e/workdirs/launch_тест",
+          "env": {"X64DBG_MCP_E2E_ENV": "значение-世界"},
+          "expectedExitCode": 37,
+          "stdoutContains": [
+            "LAUNCH_CONTRACT_OK",
+            "unicodeArgs=1",
+            "unicodeEnv=1",
+            "unicodeCwd=1",
+            "exit=37"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "typed-argv-env-cwd",
+          "args": [
+            "--case",
+            "argv-env-cwd",
+            "",
+            "plain",
+            "two words",
+            "quote\"inside",
+            "slashes\\\\before\"quote",
+            "trailing\\",
+            "punctuation !@#$%^&*()[]{};,.?",
+            "Привет 世界 🙂"
+          ],
+          "cwd": "tests/fixtures/e2e/workdirs/launch_тест",
+          "env": {
+            "X64DBG_MCP_E2E_ENV_SET": "значение-世界",
+            "X64DBG_MCP_E2E_ENV_EMPTY": ""
+          },
+          "expectedExitCode": 37,
+          "stdoutContains": [
+            "ARGV_ENV_CWD_OK",
+            "argCount=8",
+            "envSet=1",
+            "envEmpty=1",
+            "envDeleted=1",
+            "envAbsent=1",
+            "unicodeCwd=1",
+            "exit=37"
+          ],
+          "stdoutBase64": "QVJHVl9FTlZfQ1dEX09LIGFyZ0NvdW50PTggZW1wdHk9MSBwbGFpbj0xIHNwYWNlcz0xIHF1b3RlPTEgYmFja3NsYXNoZXM9MSB0cmFpbGluZ1NsYXNoPTEgcHVuY3R1YXRpb249MSB1bmljb2RlQXJncz0xIGVudlNldD0xIGVudkVtcHR5PTEgZW52RGVsZXRlZD0xIGVudkFic2VudD0xIHVuaWNvZGVDd2Q9MSBleGl0PTM3DQo=",
+          "stderrBase64": "",
+          "expectedStdoutByteCount": 185,
+          "expectedStderrByteCount": 0,
+          "expectedStdoutSha256": "532fb81369ed110ae5ebf29e924063724184f42602542accd52736e433c78dd0",
+          "expectedStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "typed-stream-binary",
+          "args": ["--case", "stream"],
+          "stdinBase64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/wA=",
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "STREAM_STDOUT count=257 fnv1a64=5AD284D356B500DF nul=2 ff=1 channel=stdout"
+          ],
+          "stderrContains": [
+            "STREAM_STDERR count=257 fnv1a64=5AD284D356B500DF nul=2 ff=1 channel=stderr"
+          ],
+          "stdoutBase64": "U1RSRUFNX1NURE9VVAD/ClNUUkVBTV9TVERPVVQgY291bnQ9MjU3IGZudjFhNjQ9NUFEMjg0RDM1NkI1MDBERiBudWw9MiBmZj0xIGNoYW5uZWw9c3Rkb3V0Cg==",
+          "stderrBase64": "U1RSRUFNX1NUREVSUgD+ClNUUkVBTV9TVERFUlIgY291bnQ9MjU3IGZudjFhNjQ9NUFEMjg0RDM1NkI1MDBERiBudWw9MiBmZj0xIGNoYW5uZWw9c3RkZXJyCg==",
+          "expectedStdoutByteCount": 91,
+          "expectedStderrByteCount": 91,
+          "expectedStdoutSha256": "6c51dd16bf9aefa1be84517acf7f55c5a5651137554ba9c70559d2ac7985ff82",
+          "expectedStderrSha256": "2ac61b384b477729a0e193fffa70c193250cadf6b7254f285ea29fb4ea8c98af",
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "typed-quick",
+          "args": ["--case", "quick"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["LAUNCH_QUICK_OK pid="],
+          "stderrBase64": "",
+          "expectedStderrByteCount": 0,
+          "expectedStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "exception_disposition",
+      "scenario": "exception-disposition",
+      "description": "Provides handled, VEH-continued first-chance and deliberately unhandled exception paths.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["raises-process-local-exception", "may-create-local-crash-report"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/exception_disposition.c"],
+        "output": "tools/bin/e2e/{arch}/exception_disposition.exe"
+      },
+      "runtime": [
+        {
+          "name": "handled-seh",
+          "args": ["handled"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["EXCEPTION_OK mode=handled", "firstChance=1", "sehHandled=1"],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "first-chance-veh-continue",
+          "args": ["first-chance"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["EXCEPTION_OK mode=first-chance", "firstChance=1", "vehContinued=1"],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "managed-clr-shaped-exception",
+          "args": ["managed"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "MANAGED_EXCEPTION_OK code=0xE0434352",
+            "hresult=0x80131500",
+            "caught=1"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "unhandled-second-chance",
+          "args": ["unhandled"],
+          "expectedExitCode": 3762438722,
+          "stdoutContains": ["EXCEPTION_EVENT mode=unhandled", "code=0xE0424242"],
+          "allowCrash": true,
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "policy-precedence-sequence",
+          "args": ["policy-sequence"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "EXCEPTION_SEQUENCE selector=exact code=0xE0424242 caught=1",
+            "EXCEPTION_SEQUENCE selector=masked code=0xE0429999 caught=1",
+            "EXCEPTION_SEQUENCE selector=wildcard code=0xA1234567 caught=1",
+            "EXCEPTION_POLICY_OK exact=1 masked=1 wildcard=1 caught=3"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "tls_seh_multistage",
+      "scenario": "tls-seh-multistage",
+      "description": "Raises and handles a deterministic first-chance exception inside a statically declared TLS process-attach callback before main.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["raises-process-local-exception"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/tls_seh_multistage.c"],
+        "output": "tools/bin/e2e/{arch}/tls_seh_multistage.exe"
+      },
+      "runtime": [
+        {
+          "name": "tls-first-chance-seh-roundtrip",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "TLS_SEH_OK tlsEntered=1",
+            "firstChance=1",
+            "sehHandled=1",
+            "code=0xE0425E11"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "deterministic_heap",
+      "scenario": "deterministic-heap",
+      "description": "Emits a stable three-allocation, one-reallocation and three-free event sequence.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["allocates-process-memory", "sleeps-under-5s"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/deterministic_heap.c"],
+        "output": "tools/bin/e2e/{arch}/deterministic_heap.exe",
+        "expectedExports": [
+          "fixture_heap_alloc",
+          "fixture_heap_realloc",
+          "fixture_heap_free",
+          "fixture_resource_matrix"
+        ]
+      },
+      "runtime": [
+        {
+          "name": "allocation-lifecycle",
+          "args": ["--hold-ms", "50"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "HEAP_EVENT seq=1 op=alloc id=first size=32",
+            "HEAP_EVENT seq=5 op=realloc id=first size=80",
+            "HEAP_CHECKPOINT live=2 freed=1 allocations=3 reallocations=1",
+            "HEAP_OK live=0 alloc=3 realloc=1 free=3"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "resource-family-matrix",
+          "args": ["--resource-matrix"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["HEAP_FAMILIES_OK result=0"],
+          "timeoutSeconds": 20
+        }
+      ]
+    },
+    {
+      "id": "deterministic_api_trace",
+      "scenario": "deterministic-api-trace",
+      "description": "Calls six known Win32 APIs with stable arguments and expected return values.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["reads-environment", "creates-kernel-event"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/deterministic_api_trace.c"],
+        "output": "tools/bin/e2e/{arch}/deterministic_api_trace.exe",
+        "expectedExports": ["fixture_api_roundtrip"]
+      },
+      "runtime": [
+        {
+          "name": "known-api-sequence",
+          "args": [],
+          "env": {"X64DBG_MCP_E2E_API": "trace-ok-7"},
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "API_EVENT seq=1 api=CreateEventW success=1",
+            "API_EVENT seq=2 api=WaitForSingleObject timeout=0 return=0x00000102",
+            "API_EVENT seq=4 api=WaitForSingleObject timeout=0 return=0x00000000",
+            "API_EVENT seq=5 api=GetEnvironmentVariableW return=10",
+            "API_TRACE_OK calls=6 result=0"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "deterministic_coverage",
+      "scenario": "deterministic-coverage",
+      "description": "Exports a stable branch target and emits ground-truth logical block paths for three inputs.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": []
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/deterministic_coverage.c"],
+        "output": "tools/bin/e2e/{arch}/deterministic_coverage.exe",
+        "linkFlags": ["/OPT:NOICF"],
+        "expectedExports": [
+          "coverage_target",
+          "block_entry",
+          "block_zero",
+          "block_even",
+          "block_odd",
+          "block_le10",
+          "block_gt10",
+          "block_loop",
+          "block_switch_0",
+          "block_switch_1",
+          "block_switch_2",
+          "block_switch_3",
+          "block_switch_4",
+          "block_switch_5",
+          "block_switch_6",
+          "block_switch_7",
+          "block_indirect_even",
+          "block_indirect_odd",
+          "block_exception_raise",
+          "block_exception_handler",
+          "coverage_loop",
+          "coverage_switch",
+          "coverage_indirect",
+          "coverage_exception",
+          "coverage_self_modify",
+          "coverage_smc_entry",
+          "block_final"
+        ]
+      },
+      "runtime": [
+        {
+          "name": "zero-even-low",
+          "args": ["0"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["COVERAGE_OK selector=0 path=entry,zero,even,le10,loop3,switch0,indirect-even,seh,smc7-9,final accumulator=802"],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "nonzero-even-low",
+          "args": ["4"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["COVERAGE_OK selector=4 path=entry,even,le10,loop3,switch4,indirect-even,seh,smc7-9,final accumulator=872"],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "odd-high",
+          "args": ["13"],
+          "expectedExitCode": 0,
+          "stdoutContains": ["COVERAGE_OK selector=13 path=entry,odd,gt10,loop3,switch5,indirect-odd,seh,smc7-9,final accumulator=2732"],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "dynamic_api_trace",
+      "scenario": "dynamic-api-trace",
+      "description": "Loads user32 after startup, resolves GetSystemMetrics through GetProcAddress, and calls the returned pointer.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["loads-system-dll", "queries-screen-metrics"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/dynamic_api_trace.c"],
+        "output": "tools/bin/e2e/{arch}/dynamic_api_trace.exe",
+        "expectedExports": ["dynamic_api_prepare", "dynamic_api_target"]
+      },
+      "runtime": [
+        {
+          "name": "late-load-resolver-call",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": ["DYNAMIC_API_OK module=1 resolver=1 call=1 widthPositive=1"],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "child_process",
+      "scenario": "child-process",
+      "description": "Spawns a same-architecture child, keeps it alive briefly and validates its exit code.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["creates-child-process", "sleeps-under-5s"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/child_process.c"],
+        "output": "tools/bin/e2e/{arch}/child_process.exe"
+      },
+      "runtime": [
+        {
+          "name": "parent-observes-child",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "CHILD_EVENT role=parent phase=spawn",
+            "CHILD_EVENT role=child",
+            "token=child-ok",
+            "CHILD_OK childExit=23 observed=1"
+          ],
+          "timeoutSeconds": 12
+        }
+      ]
+    },
+    {
+      "id": "hollow_host",
+      "scenario": "hollow-host",
+      "description": "Benign suspended-process host whose original image is replaced only by the local process-hollowing corpus fixture.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": []
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/hollow_host.c"],
+        "output": "tools/bin/e2e/{arch}/hollow_host.exe"
+      },
+      "runtime": [
+        {
+          "name": "original-host-control",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": ["HOLLOW_HOST_OK", "imageExecuted=1"],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "hollow_payload",
+      "scenario": "hollow-payload",
+      "description": "CRT-free local payload with a deterministic entry point, output marker, bounded hold and exit code.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["reads-environment", "sleeps-under-5s"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/hollow_payload.c"],
+        "output": "tools/bin/e2e/{arch}/hollow_payload.exe",
+        "compileFlags": ["/GS-"],
+        "linkFlags": ["/NODEFAULTLIB", "/ENTRY:payload_entry", "kernel32.lib", "ntdll.lib"],
+        "expectedImports": ["KERNEL32.dll", "ntdll.dll"]
+      },
+      "runtime": [
+        {
+          "name": "standalone-payload-control",
+          "args": [],
+          "env": {"X64DBG_MCP_E2E_HOLLOW_HOLD_MS": "50"},
+          "expectedExitCode": 42,
+          "stdoutContains": [
+            "HOLLOW_PAYLOAD_OK identity=payload",
+            "imageExecuted=1",
+            "exit=42"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "process_hollowing",
+      "scenario": "process-hollowing",
+      "description": "Creates the local host suspended, replaces its image with the same-architecture local payload, resumes it and verifies the payload exit marker.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": [
+          "creates-child-process",
+          "allocates-process-memory",
+          "writes-child-process-memory",
+          "reads-environment",
+          "sleeps-under-5s"
+        ]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/process_hollowing.c"],
+        "output": "tools/bin/e2e/{arch}/process_hollowing.exe",
+        "dependencies": ["hollow_host", "hollow_payload"]
+      },
+      "runtime": [
+        {
+          "name": "replace-and-execute-child-image",
+          "args": [],
+          "env": {"X64DBG_MCP_E2E_HOLLOW_HOLD_MS": "50"},
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "HOLLOW_EVENT",
+            "host=hollow_host.exe payload=hollow_payload.exe",
+            "HOLLOW_PAYLOAD_OK identity=payload imageExecuted=1 exit=42",
+            "HOLLOW_PARENT_OK",
+            "childExit=42 observed=1"
+          ],
+          "timeoutSeconds": 15
+        }
+      ]
+    },
+    {
+      "id": "same_section_unpack",
+      "scenario": "same-section-unpack",
+      "description": "Decrypts a deterministic payload and transfers to the rewritten code inside the same executable section.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": [
+          "rewrites-own-process-memory"
+        ]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/same_section_unpack.c"],
+        "compileFlags": ["/GS-"],
+        "linkFlags": [
+          "/NODEFAULTLIB",
+          "/ENTRY:packer_entry",
+          "/MERGE:.text=.packed",
+          "/SECTION:.packed,ERW",
+          "kernel32.lib"
+        ],
+        "output": "tools/bin/e2e/{arch}/same_section_unpack.exe",
+        "expectedImports": ["kernel32.dll"]
+      },
+      "runtime": [
+        {
+          "name": "decrypt-and-transfer-in-one-section",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "SAME_SECTION_OK result=42 runtimeMutation=1"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "custom_import_resolver",
+      "scenario": "custom-import-resolver",
+      "description": "Resolves a hash-keyed import table by walking loaded PE exports without a static import directory.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": [
+          "resolves-system-exports"
+        ]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/custom_import_resolver.c"],
+        "compileFlags": ["/GS-"],
+        "linkFlags": [
+          "/NODEFAULTLIB",
+          "/ENTRY:custom_resolver_entry",
+          "/MERGE:.text=.resolver",
+          "/SECTION:.resolver,ERW",
+          "libcmt.lib"
+        ],
+        "output": "tools/bin/e2e/{arch}/custom_import_resolver.exe",
+        "expectedExports": [
+          "custom_import_table",
+          "custom_resolve_export"
+        ]
+      },
+      "runtime": [
+        {
+          "name": "hash-resolve-and-call",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "CUSTOM_RESOLVER_OK hashes=7 slots=7 pid=1 tid=1 tick=1"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "execute_after_write",
+      "scenario": "execute-after-write",
+      "description": "Writes deterministic machine code into an exported executable buffer and calls the changed bytes.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": [
+          "rewrites-own-process-memory"
+        ]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/execute_after_write.c"],
+        "compileFlags": ["/GS-"],
+        "linkFlags": [
+          "/SECTION:.eaw,ERW"
+        ],
+        "output": "tools/bin/e2e/{arch}/execute_after_write.exe",
+        "expectedImports": ["kernel32.dll"],
+        "expectedExports": [
+          "eaw_buffer",
+          "eaw_stage_write"
+        ]
+      },
+      "runtime": [
+        {
+          "name": "write-generated-code-then-execute",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "EXECUTE_AFTER_WRITE_OK result=42 changed=4 executed=1"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "key_recovery",
+      "scenario": "comparison-key-recovery",
+      "description": "Exercises direct ANSI, single-byte-XOR and UTF-16 comparison-secret recovery with independent success oracles.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": []
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/key_recovery.c"],
+        "output": "tools/bin/e2e/{arch}/key_recovery.exe",
+        "expectedImports": ["kernel32.dll"]
+      },
+      "runtime": [
+        {
+          "name": "direct-secret-success",
+          "args": ["direct", "polished-key-42"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "KEY_RECOVERY_RESULT mode=direct equal=1",
+            "KEY_RECOVERY_OK mode=direct"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "xor-secret-success",
+          "args": ["xor", "XorKey-7!"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "KEY_RECOVERY_RESULT mode=xor equal=1 length=9",
+            "KEY_RECOVERY_OK mode=xor"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "wide-secret-success",
+          "args": ["wide", "wide-key-42"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "KEY_RECOVERY_RESULT mode=wide equal=1",
+            "KEY_RECOVERY_OK mode=wide"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "fixture_module",
+      "scenario": "dll-module-provider",
+      "description": "Benign DLL exporting three deterministic functions for module and import tests.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": []
+      },
+      "build": {
+        "kind": "dll",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/fixture_module.c"],
+        "output": "tools/bin/e2e/{arch}/fixture_module.dll",
+        "importLibrary": "tools/bin/e2e/{arch}/fixture_module.lib",
+        "expectedExports": ["FixtureAdd", "FixtureFill", "FixtureName"]
+      },
+      "runtime": []
+    },
+    {
+      "id": "manual_map_loader",
+      "scenario": "manual-map-loader",
+      "description": "Manually maps fixture_module.dll, resolves relocations/imports/TLS/unwind metadata, executes an export, and can destroy headers or retain an embedded reflective copy.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": [
+          "allocates-process-memory",
+          "loads-local-test-dll",
+          "loads-system-dll"
+        ]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/manual_map_loader.c"],
+        "dependencies": ["fixture_module"],
+        "output": "tools/bin/e2e/{arch}/manual_map_loader.exe"
+      },
+      "runtime": [
+        {
+          "name": "execute-destroyed-header-manual-map",
+          "args": ["--destroy-headers"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "MANUAL_MAP_OK result=42 headers=destroyed",
+            "imports=1"
+          ],
+          "timeoutSeconds": 5
+        },
+        {
+          "name": "embedded-reflective-image",
+          "args": ["--mode", "embedded"],
+          "expectedExitCode": 0,
+          "stdoutContains": [
+            "REFLECTIVE_EMBED_OK offset=0x600"
+          ],
+          "timeoutSeconds": 5
+        }
+      ]
+    },
+    {
+      "id": "module_imports",
+      "scenario": "dll-module-imports",
+      "description": "Imports and calls all three fixture_module exports through a normal PE import table.",
+      "safety": {
+        "classification": "benign",
+        "requiresAdmin": false,
+        "network": false,
+        "dangerous": false,
+        "sideEffects": ["loads-local-test-dll"]
+      },
+      "build": {
+        "kind": "exe",
+        "language": "c",
+        "architectures": ["x86", "x64"],
+        "sources": ["tests/fixtures/e2e/module_imports.c"],
+        "dependencies": ["fixture_module"],
+        "linkInputs": ["tools/bin/e2e/{arch}/fixture_module.lib"],
+        "output": "tools/bin/e2e/{arch}/module_imports.exe",
+        "expectedImports": ["fixture_module.dll"]
+      },
+      "runtime": [
+        {
+          "name": "direct-import-roundtrip",
+          "args": [],
+          "expectedExitCode": 0,
+          "stdoutContains": ["MODULE_IMPORT_OK loaded=1 directImports=3 sum=42 textLength=16"],
+          "timeoutSeconds": 5
+        }
+      ]
+    }
+  ]
+}

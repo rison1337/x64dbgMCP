@@ -1,0 +1,11 @@
+# Runtime section hashes are byte-level integrity contracts. Keep every
+# repository text artifact stable across Windows and POSIX checkouts.
+* text=auto eol=lf
+
+# Windows-native project files are conventionally CRLF, but this does not
+# affect the runtime loader or Python/source manifests above.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.vcxproj text eol=crlf
+*.props text eol=crlf
+*.targets text eol=crlf

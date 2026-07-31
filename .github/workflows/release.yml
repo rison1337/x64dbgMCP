@@ -1,0 +1,144 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Run contract tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Configure native plugins
+        run: cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
+
+      - name: Build and test both architectures
+        shell: pwsh
+        run: |
+          cmake --build build --target all_plugins --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/build32 -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/build64 -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package release assets
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $stage = Join-Path $PWD "package\x64dbg-mcp-windows"
+          $runtime = Join-Path $stage "runtime"
+          $plugins = Join-Path $stage "plugins"
+          New-Item -ItemType Directory -Force -Path $runtime,$plugins | Out-Null
+          Copy-Item requirements.txt,LICENSE,NOTICE,README.md -Destination $runtime
+          Copy-Item src -Destination $runtime -Recurse
+          Get-ChildItem $runtime -Recurse -Directory -Filter "__pycache__" |
+            Remove-Item -Recurse -Force
+          Get-ChildItem $runtime -Recurse -File |
+            Where-Object { $_.Extension -in @(".pyc", ".pyo", ".log", ".lock") } |
+            Remove-Item -Force
+          $dp64 = Get-ChildItem build -Recurse -File -Filter MCPx64dbg.dp64 | Select-Object -First 1
+          $dp32 = Get-ChildItem build -Recurse -File -Filter MCPx64dbg.dp32 | Select-Object -First 1
+          if (-not $dp64 -or -not $dp32) { throw "Both plugin architectures are required." }
+          Copy-Item $dp64.FullName (Join-Path $plugins "MCPx64dbg.dp64")
+          Copy-Item $dp32.FullName (Join-Path $plugins "MCPx64dbg.dp32")
+          Copy-Item $dp64.FullName (Join-Path $PWD "MCPx64dbg.dp64")
+          Copy-Item $dp32.FullName (Join-Path $PWD "MCPx64dbg.dp32")
+          $archive = Join-Path $PWD "x64dbg-mcp-windows-$tag.zip"
+          Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $archive -CompressionLevel Optimal
+          $assets = @(
+            (Join-Path $PWD "MCPx64dbg.dp64"),
+            (Join-Path $PWD "MCPx64dbg.dp32"),
+            $archive
+          )
+          $checksums = foreach ($asset in $assets) {
+            $stream = [IO.File]::OpenRead($asset)
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try {
+              $hash = ([BitConverter]::ToString($hasher.ComputeHash($stream))).Replace("-", "").ToLowerInvariant()
+            } finally {
+              $hasher.Dispose()
+              $stream.Dispose()
+            }
+            "$hash  $([IO.Path]::GetFileName($asset))"
+          }
+          [IO.File]::WriteAllLines((Join-Path $PWD "SHA256SUMS.txt"), $checksums)
+
+      - name: Smoke-test packaged runtime
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $archive = Join-Path $PWD "x64dbg-mcp-windows-$tag.zip"
+          $smokeRoot = Join-Path $env:RUNNER_TEMP "x64dbg-mcp-release-smoke"
+          Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot
+          $runtime = Join-Path $smokeRoot "runtime"
+          $plugins = Join-Path $smokeRoot "plugins"
+          $required = @(
+            (Join-Path $runtime "src\mcp_stdio_launcher.py"),
+            (Join-Path $runtime "src\x64dbg.py"),
+            (Join-Path $runtime "requirements.txt"),
+            (Join-Path $plugins "MCPx64dbg.dp64"),
+            (Join-Path $plugins "MCPx64dbg.dp32")
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Missing release file: $path"
+            }
+          }
+
+          $venv = Join-Path $smokeRoot ".venv"
+          python -m venv $venv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $python = Join-Path $venv "Scripts\python.exe"
+          & $python -m pip install --disable-pip-version-check -r (Join-Path $runtime "requirements.txt")
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $env:X64DBG_MCP_TOOL_PROFILE = "compact"
+          & $python (Join-Path $PWD "tools\smoke_stdio_clients.py") `
+            --launcher (Join-Path $runtime "src\mcp_stdio_launcher.py") `
+            --clients 3 `
+            --calls 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          body: |
+            ## Quick setup
+
+            Download `x64dbg-mcp-windows-${{ github.ref_name }}.zip`. It
+            contains both plugins and the Python backend:
+
+            - `plugins\MCPx64dbg.dp64` → `C:\x64dbg\x64\plugins\`
+            - `plugins\MCPx64dbg.dp32` → `C:\x64dbg\x32\plugins\`
+            - `runtime\src` + `runtime\requirements.txt`
+
+            Extract the bundle, copy both plugins, create a Python 3.11+
+            environment inside `runtime`, and use the Codex, Claude Code or
+            generic stdio configuration from the README.
+
+            `SHA256SUMS.txt` contains the hashes for the bundle and both
+            plugin assets.
+          files: |
+            MCPx64dbg.dp64
+            MCPx64dbg.dp32
+            x64dbg-mcp-windows-${{ github.ref_name }}.zip
+            SHA256SUMS.txt

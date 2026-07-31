@@ -1,0 +1,79 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main, release-prep ]
+  pull_request:
+
+jobs:
+  tests:
+    name: Unit tests (Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Compile Python sources
+        run: python -m compileall -q src tools tests
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  build-plugin:
+    name: Build plugin (both arches)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure (fetch SDK)
+        run: cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
+      - name: Build dp32 + dp64
+        run: cmake --build build --target all_plugins --config Release
+      - name: Run native bridge-core tests (both arches)
+        shell: pwsh
+        run: |
+          ctest --test-dir build/build32 -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/build64 -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify plugin artifacts
+        shell: pwsh
+        run: |
+          $artifacts = @(Get-ChildItem build -Recurse -File -Include MCPx64dbg.dp32,MCPx64dbg.dp64)
+          $extensions = @($artifacts.Extension | Sort-Object -Unique)
+          if ($extensions -notcontains '.dp32' -or $extensions -notcontains '.dp64') {
+            throw "Both dp32 and dp64 artifacts are required. Found: $($artifacts.FullName -join ', ')"
+          }
+          foreach ($artifact in $artifacts) {
+            if ($artifact.Length -lt 50000) {
+              throw "Plugin artifact is unexpectedly small: $($artifact.FullName) ($($artifact.Length) bytes)"
+            }
+            $stream = [IO.File]::OpenRead($artifact.FullName)
+            $hasher = [Security.Cryptography.SHA256]::Create()
+            try {
+              $hash = ([BitConverter]::ToString($hasher.ComputeHash($stream))).Replace("-", "")
+            } finally {
+              $hasher.Dispose()
+              $stream.Dispose()
+            }
+            Write-Host "$hash  $($artifact.FullName)"
+          }
+      - name: Upload plugins
+        uses: actions/upload-artifact@v6
+        with:
+          name: MCPx64dbg-plugins
+          path: |
+            build/**/MCPx64dbg.dp64
+            build/**/MCPx64dbg.dp32
+          if-no-files-found: error

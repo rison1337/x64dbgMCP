@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">x64dbg MCP</title>
+  <desc id="desc">A dynamic reverse-engineering backend for x64dbg and x32dbg.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#081321"/>
+      <stop offset=".52" stop-color="#0b1323"/>
+      <stop offset="1" stop-color="#10142a"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="32"/>
+    </filter>
+    <style>
+      .ui { font-family: Inter, "Segoe UI", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .flow { stroke-dasharray: 8 10; animation: flow 3s linear infinite; }
+      .pulse { animation: pulse 2.4s ease-in-out infinite; }
+      @keyframes flow { to { stroke-dashoffset: -72; } }
+      @keyframes pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+    </style>
+  </defs>
+
+  <rect width="1280" height="360" rx="32" fill="url(#bg)"/>
+  <circle cx="100" cy="330" r="240" fill="#2563eb" opacity=".13" filter="url(#blur)"/>
+  <circle cx="1120" cy="40" r="210" fill="#8b5cf6" opacity=".11" filter="url(#blur)"/>
+
+  <g transform="translate(78 76)">
+    <rect width="112" height="112" rx="29" fill="url(#brand)"/>
+    <rect x="17" y="17" width="78" height="78" rx="19" fill="#081321" opacity=".86"/>
+    <text x="56" y="62" class="mono" fill="#fff" font-size="25" font-weight="900" text-anchor="middle">x64</text>
+    <path d="M32 76H80" stroke="#67e8f9" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <text x="224" y="128" class="ui" fill="#fff" font-size="55" font-weight="850">x64dbg MCP</text>
+  <text x="224" y="178" class="ui" fill="#b8c4d6" font-size="23">Reverse live code. Capture evidence. Prove the result.</text>
+
+  <g transform="translate(224 218)" class="ui" font-size="15" font-weight="750">
+    <rect width="134" height="42" rx="12" fill="#10263a" stroke="#155e75"/>
+    <text x="67" y="27" fill="#a5f3fc" text-anchor="middle">x86 + x64</text>
+    <rect x="148" width="144" height="42" rx="12" fill="#1b1b3d" stroke="#4c45a5"/>
+    <text x="220" y="27" fill="#ddd6fe" text-anchor="middle">LIVE TRACE</text>
+    <rect x="306" width="148" height="42" rx="12" fill="#112d29" stroke="#047857"/>
+    <text x="380" y="27" fill="#a7f3d0" text-anchor="middle">PROVEN</text>
+  </g>
+
+  <g transform="translate(880 78)">
+    <rect width="316" height="204" rx="24" fill="#101827" stroke="#34445f"/>
+    <circle cx="24" cy="24" r="4.5" fill="#fb7185"/>
+    <circle cx="41" cy="24" r="4.5" fill="#fbbf24"/>
+    <circle cx="58" cy="24" r="4.5" fill="#34d399"/>
+    <text x="80" y="30" class="mono" fill="#8190a8" font-size="13">x64dbg / CPU</text>
+    <path d="M0 47H316" stroke="#2b3b56"/>
+
+    <rect x="22" y="65" width="50" height="9" rx="4.5" fill="#334155"/>
+    <rect x="84" y="65" width="142" height="9" rx="4.5" fill="#475569"/>
+    <rect x="22" y="88" width="50" height="9" rx="4.5" fill="#334155"/>
+    <rect x="84" y="88" width="108" height="9" rx="4.5" fill="#475569"/>
+
+    <rect x="17" y="108" width="282" height="40" rx="10" fill="#0c3148" stroke="#22d3ee"/>
+    <circle class="pulse" cx="35" cy="128" r="5" fill="#67e8f9"/>
+    <text x="52" y="134" class="mono" fill="#e0f2fe" font-size="18" font-weight="800">cmp rcx, rdx</text>
+
+    <rect x="22" y="164" width="186" height="20" rx="10" fill="#123c32"/>
+    <circle class="pulse" cx="37" cy="174" r="4" fill="#34d399"/>
+    <text x="50" y="179" class="mono" fill="#a7f3d0" font-size="13">evidence captured</text>
+    <rect x="222" y="164" width="72" height="20" rx="10" fill="#27205a"/>
+    <text x="258" y="179" class="mono" text-anchor="middle" fill="#ddd6fe" font-size="12">hash+RVA</text>
+  </g>
+
+  <text x="224" y="314" class="mono" fill="#718198" font-size="16">CONTROL  &#x2022;  OBSERVE  &#x2022;  RECOVER  &#x2022;  VALIDATE</text>
+</svg>

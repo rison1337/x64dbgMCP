@@ -1,0 +1,12 @@
+# Runtime dependencies for the x64dbg MCP server (src/x64dbg.py, src/ext_tools.py).
+# Windows + Python 3.10+.
+# The server uses the stable mcp.server.fastmcp package layout from the 1.x
+# line. MCP 2.x moved that import path and is not API-compatible yet.
+mcp>=1.28,<2.0
+requests>=2.31
+pefile>=2023.2.7
+dnfile>=0.17.0
+
+# Optional: only needed for the built-in chat CLI path in src/x64dbg.py
+#   (python src/x64dbg.py claude ...). Install separately if you want it:
+# anthropic>=0.40

@@ -1,0 +1,28 @@
+x64dbg MCP
+==========
+
+This project is a derivative work based on x64dbgMCP by Sam W (Wasdubya):
+
+    https://github.com/Wasdubya/x64dbgMCP
+
+The original project is licensed under the GNU General Public License v3.0.
+In accordance with the GPL, this fork remains licensed under GPL-3.0 (see the
+LICENSE file) and carries prominent notice of the changes made.
+
+Summary of significant changes in this fork
+--------------------------------------------
+- Reworked the C++ plugin bridge: RAII socket handling, Content-Length-aware
+  request reading with receive timeouts, loopback-only bind, and DNS-rebinding /
+  cross-origin (Host/Origin) request rejection.
+- Structured-exception hardening: request handlers translate Windows SEH faults
+  into catchable C++ exceptions (/EHa + _set_se_translator) so a bad pointer
+  returns HTTP 500 instead of crashing x64dbg.
+- A substantially expanded, higher-level MCP toolset: launch/attach lifecycle,
+  smart "run until" flows, console and GUI/UI-Automation automation, anti-debug
+  and packer triage, OEP hunting, Scylla dump/fix, tracing (API/heap/instruction/
+  coverage), snapshots, thread control, conditional tracing, symbol loading, and
+  patched-binary export.
+- Session binding, bridge self-check / drift detection, and smoke-test harnesses.
+
+The x64dbg Plugin SDK fetched/bundled under deps/ is (c) the x64dbg authors and
+distributed under its own license.
