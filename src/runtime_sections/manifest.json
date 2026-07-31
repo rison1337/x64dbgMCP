@@ -1,8 +1,8 @@
 {
   "schema": "x64dbg-mcp-runtime-sections-v1",
   "source": "x64dbg_runtime.py",
-  "sourceLineCount": 42006,
-  "sourceSha256": "7379DCE2E135AB5EA0B8CE346B31A7F54BD05D6D2242F9FBC53BCA5F951506C8",
+  "sourceLineCount": 42009,
+  "sourceSha256": "BE9970F3E3BD1A5045EEBF583E8E30C6826343BFB252B4C23446C1E519B9C242",
   "sections": [
     {
       "name": "00_bootstrap_and_session.py",
@@ -49,14 +49,14 @@
     {
       "name": "60_evidence_and_managed.py",
       "startLine": 38818,
-      "endLine": 41835,
-      "lineCount": 3018,
-      "sha256": "22BDD0F0F20B114A661184412EEBF27CFA0904F0184F07FF4FA0214D17EC8F58"
+      "endLine": 41838,
+      "lineCount": 3021,
+      "sha256": "47C3A3B076F27FAE650247BAB9B4B510DE6D16AD6BC2DAA0023C2E31F5EAC390"
     },
     {
       "name": "70_registration_and_cli.py",
-      "startLine": 41836,
-      "endLine": 42006,
+      "startLine": 41839,
+      "endLine": 42009,
       "lineCount": 171,
       "sha256": "A57567DC6E36CBFBD6773987304DF3C5C0BB106CFAC9A1D3C553537A6311DFF7"
     }

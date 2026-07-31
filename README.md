@@ -59,38 +59,72 @@ native plugins and the Python backend:
 - `plugins\MCPx64dbg.dp32` for x32dbg
 - `runtime\src` and `runtime\requirements.txt`
 
-Close x64dbg/x32dbg, extract the bundle and install both plugins:
+Close x64dbg/x32dbg. Open PowerShell in the folder containing the downloaded
+ZIP, then run the block below. It asks where to keep the MCP bundle and where
+x64dbg is already installed; no drive or installation directory is assumed.
+Keep the same PowerShell window open for the client-specific commands below.
 
 ```powershell
-Expand-Archive .\x64dbg-mcp-windows-*.zip C:\Tools\x64dbg-mcp
-Copy-Item C:\Tools\x64dbg-mcp\plugins\MCPx64dbg.dp64 C:\x64dbg\x64\plugins\
-Copy-Item C:\Tools\x64dbg-mcp\plugins\MCPx64dbg.dp32 C:\x64dbg\x32\plugins\
+$Archive = Get-ChildItem -File .\x64dbg-mcp-windows-*.zip |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+if (-not $Archive) { throw 'The x64dbg MCP release ZIP was not found in this folder.' }
 
-Set-Location C:\Tools\x64dbg-mcp\runtime
+$BundleRoot = Read-Host 'Absolute folder where x64dbg MCP should be extracted'
+$X64dbgRoot = Read-Host 'Absolute folder containing the x64 and x32 x64dbg folders'
+$BundleRoot = [IO.Path]::GetFullPath(
+  [Environment]::ExpandEnvironmentVariables($BundleRoot.Trim()))
+$X64dbgRoot = (Resolve-Path -LiteralPath (
+  [Environment]::ExpandEnvironmentVariables($X64dbgRoot.Trim()))).Path
+
+if (-not (Test-Path -LiteralPath (Join-Path $X64dbgRoot 'x64\x64dbg.exe'))) {
+  throw "x64dbg.exe was not found under $X64dbgRoot\x64"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $X64dbgRoot 'x32\x32dbg.exe'))) {
+  throw "x32dbg.exe was not found under $X64dbgRoot\x32"
+}
+
+Expand-Archive -LiteralPath $Archive.FullName -DestinationPath $BundleRoot -Force
+Copy-Item (Join-Path $BundleRoot 'plugins\MCPx64dbg.dp64') `
+  (Join-Path $X64dbgRoot 'x64\plugins\MCPx64dbg.dp64') -Force
+Copy-Item (Join-Path $BundleRoot 'plugins\MCPx64dbg.dp32') `
+  (Join-Path $X64dbgRoot 'x32\plugins\MCPx64dbg.dp32') -Force
+
+$RuntimeRoot = Join-Path $BundleRoot 'runtime'
+Set-Location $RuntimeRoot
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+$PythonExe = (Resolve-Path .\.venv\Scripts\python.exe).Path
+$Launcher = (Resolve-Path .\src\mcp_stdio_launcher.py).Path
+[pscustomobject]@{
+  PythonExe  = $PythonExe
+  Launcher   = $Launcher
+  X64dbgRoot = $X64dbgRoot
+}
 ```
 
 #### Codex
 
-Add the server to `~\.codex\config.toml`:
+Add the server to `~\.codex\config.toml`. Replace the three angle-bracketed
+values with the absolute paths printed by the setup block. TOML single-quoted
+strings preserve Windows backslashes as written.
 
 ```toml
 [mcp_servers.x64dbg]
-command = "C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe"
-args = ["C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"]
+command = '<PythonExe>'
+args = ['<Launcher>']
 startup_timeout_sec = 90
 
 [mcp_servers.x64dbg.env]
-X64DBG_ROOT = "C:\\x64dbg"
-X64DBG_MCP_TOOL_PROFILE = "compact"
+X64DBG_ROOT = '<X64dbgRoot>'
+X64DBG_MCP_TOOL_PROFILE = 'compact'
 ```
 
 Start x64dbg or x32dbg and verify the bridge:
 
 ```powershell
-C:\Tools\x64dbg-mcp\runtime\.venv\Scripts\python.exe `
-  C:\Tools\x64dbg-mcp\runtime\src\x64dbg.py GetDebuggerPluginStatus
+& $PythonExe (Join-Path $RuntimeRoot 'src\x64dbg.py') GetDebuggerPluginStatus
 ```
 
 `GetScyllaHideStatus.installed` and `integrationReady` describe the MCP
@@ -99,10 +133,20 @@ x64dbg GUI plugin; it is not required for MCP injection.
 
 #### Claude Code
 
-Add the same stdio server to Claude Code with the user scope:
+Add the same stdio server to Claude Code with the user scope. This command uses
+the paths selected by the setup block instead of embedding a machine-specific
+location:
 
 ```powershell
-claude mcp add-json x64dbg '{"command":"C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe","args":["C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"],"env":{"X64DBG_ROOT":"C:\\x64dbg","X64DBG_MCP_TOOL_PROFILE":"compact"}}' --scope user
+$ClaudeServer = [ordered]@{
+  command = $PythonExe
+  args = @($Launcher)
+  env = [ordered]@{
+    X64DBG_ROOT = $X64dbgRoot
+    X64DBG_MCP_TOOL_PROFILE = 'compact'
+  }
+} | ConvertTo-Json -Depth 4 -Compress
+claude mcp add-json x64dbg $ClaudeServer --scope user
 claude mcp list
 ```
 
@@ -112,23 +156,23 @@ environment interactively.
 #### Claude Desktop and other stdio clients
 
 Use the client's MCP JSON configuration. For Claude Desktop on Windows, the
-file is `%APPDATA%\Claude\claude_desktop_config.json`:
+file is `%APPDATA%\Claude\claude_desktop_config.json`. Generate a JSON block
+with the actual paths selected above:
 
-```json
-{
-  "mcpServers": {
-    "x64dbg": {
-      "command": "C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe",
-      "args": [
-        "C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"
-      ],
-      "env": {
-        "X64DBG_ROOT": "C:\\x64dbg",
-        "X64DBG_MCP_TOOL_PROFILE": "compact"
+```powershell
+$ClientConfig = [ordered]@{
+  mcpServers = [ordered]@{
+    x64dbg = [ordered]@{
+      command = $PythonExe
+      args = @($Launcher)
+      env = [ordered]@{
+        X64DBG_ROOT = $X64dbgRoot
+        X64DBG_MCP_TOOL_PROFILE = 'compact'
       }
     }
   }
 }
+$ClientConfig | ConvertTo-Json -Depth 6
 ```
 
 Cursor, VS Code MCP, Windsurf and other stdio clients use the same
@@ -140,8 +184,11 @@ Cursor, VS Code MCP, Windsurf and other stdio clients use the same
 cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
-Copy-Item build\build64\Release\MCPx64dbg.dp64 C:\x64dbg\x64\plugins\
-Copy-Item build\build32\Release\MCPx64dbg.dp32 C:\x64dbg\x32\plugins\
+$X64dbgRoot = (Resolve-Path -LiteralPath (Read-Host 'x64dbg installation folder')).Path
+Copy-Item build\build64\Release\MCPx64dbg.dp64 `
+  (Join-Path $X64dbgRoot 'x64\plugins\MCPx64dbg.dp64') -Force
+Copy-Item build\build32\Release\MCPx64dbg.dp32 `
+  (Join-Path $X64dbgRoot 'x32\plugins\MCPx64dbg.dp32') -Force
 ```
 
 ### IDA Pro MCP Fusion handoff
@@ -260,38 +307,72 @@ Windows-архив. Внутри сразу есть оба native-плагин�
 - `plugins\MCPx64dbg.dp32` для x32dbg
 - `runtime\src` и `runtime\requirements.txt`
 
-Закройте x64dbg/x32dbg, распакуйте архив и установите оба плагина:
+Закройте x64dbg/x32dbg. Откройте PowerShell в папке со скачанным ZIP и
+выполните блок ниже. Он сам запросит папку для MCP и путь к уже установленному
+x64dbg — диск и расположение заранее не предполагаются. Не закрывайте это окно
+PowerShell до выполнения команд для выбранного MCP-клиента.
 
 ```powershell
-Expand-Archive .\x64dbg-mcp-windows-*.zip C:\Tools\x64dbg-mcp
-Copy-Item C:\Tools\x64dbg-mcp\plugins\MCPx64dbg.dp64 C:\x64dbg\x64\plugins\
-Copy-Item C:\Tools\x64dbg-mcp\plugins\MCPx64dbg.dp32 C:\x64dbg\x32\plugins\
+$Archive = Get-ChildItem -File .\x64dbg-mcp-windows-*.zip |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+if (-not $Archive) { throw 'Архив релиза x64dbg MCP не найден в этой папке.' }
 
-Set-Location C:\Tools\x64dbg-mcp\runtime
+$BundleRoot = Read-Host 'Полный путь к папке, куда распаковать x64dbg MCP'
+$X64dbgRoot = Read-Host 'Полный путь к папке x64dbg, содержащей каталоги x64 и x32'
+$BundleRoot = [IO.Path]::GetFullPath(
+  [Environment]::ExpandEnvironmentVariables($BundleRoot.Trim()))
+$X64dbgRoot = (Resolve-Path -LiteralPath (
+  [Environment]::ExpandEnvironmentVariables($X64dbgRoot.Trim()))).Path
+
+if (-not (Test-Path -LiteralPath (Join-Path $X64dbgRoot 'x64\x64dbg.exe'))) {
+  throw "x64dbg.exe не найден в $X64dbgRoot\x64"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $X64dbgRoot 'x32\x32dbg.exe'))) {
+  throw "x32dbg.exe не найден в $X64dbgRoot\x32"
+}
+
+Expand-Archive -LiteralPath $Archive.FullName -DestinationPath $BundleRoot -Force
+Copy-Item (Join-Path $BundleRoot 'plugins\MCPx64dbg.dp64') `
+  (Join-Path $X64dbgRoot 'x64\plugins\MCPx64dbg.dp64') -Force
+Copy-Item (Join-Path $BundleRoot 'plugins\MCPx64dbg.dp32') `
+  (Join-Path $X64dbgRoot 'x32\plugins\MCPx64dbg.dp32') -Force
+
+$RuntimeRoot = Join-Path $BundleRoot 'runtime'
+Set-Location $RuntimeRoot
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+$PythonExe = (Resolve-Path .\.venv\Scripts\python.exe).Path
+$Launcher = (Resolve-Path .\src\mcp_stdio_launcher.py).Path
+[pscustomobject]@{
+  PythonExe  = $PythonExe
+  Launcher   = $Launcher
+  X64dbgRoot = $X64dbgRoot
+}
 ```
 
 #### Codex
 
-Добавьте сервер в `~\.codex\config.toml`:
+Добавьте сервер в `~\.codex\config.toml`. Замените три значения в угловых
+скобках на абсолютные пути, которые напечатал блок настройки. В одинарных
+строках TOML обратные слеши Windows не нужно удваивать.
 
 ```toml
 [mcp_servers.x64dbg]
-command = "C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe"
-args = ["C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"]
+command = '<PythonExe>'
+args = ['<Launcher>']
 startup_timeout_sec = 90
 
 [mcp_servers.x64dbg.env]
-X64DBG_ROOT = "C:\\x64dbg"
-X64DBG_MCP_TOOL_PROFILE = "compact"
+X64DBG_ROOT = '<X64dbgRoot>'
+X64DBG_MCP_TOOL_PROFILE = 'compact'
 ```
 
 Запустите x64dbg или x32dbg и проверьте bridge:
 
 ```powershell
-C:\Tools\x64dbg-mcp\runtime\.venv\Scripts\python.exe `
-  C:\Tools\x64dbg-mcp\runtime\src\x64dbg.py GetDebuggerPluginStatus
+& $PythonExe (Join-Path $RuntimeRoot 'src\x64dbg.py') GetDebuggerPluginStatus
 ```
 
 Поля `GetScyllaHideStatus.installed` и `integrationReady` относятся к backend
@@ -300,10 +381,19 @@ C:\Tools\x64dbg-mcp\runtime\.venv\Scripts\python.exe `
 
 #### Claude Code
 
-Добавьте тот же stdio-сервер в Claude Code с областью пользователя:
+Добавьте тот же stdio-сервер в Claude Code с областью пользователя. Команда
+использует выбранные выше пути, а не расположение с чужого компьютера:
 
 ```powershell
-claude mcp add-json x64dbg '{"command":"C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe","args":["C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"],"env":{"X64DBG_ROOT":"C:\\x64dbg","X64DBG_MCP_TOOL_PROFILE":"compact"}}' --scope user
+$ClaudeServer = [ordered]@{
+  command = $PythonExe
+  args = @($Launcher)
+  env = [ordered]@{
+    X64DBG_ROOT = $X64dbgRoot
+    X64DBG_MCP_TOOL_PROFILE = 'compact'
+  }
+} | ConvertTo-Json -Depth 4 -Compress
+claude mcp add-json x64dbg $ClaudeServer --scope user
 claude mcp list
 ```
 
@@ -313,23 +403,23 @@ claude mcp list
 #### Claude Desktop и другие stdio-клиенты
 
 Используйте JSON-конфигурацию MCP вашего клиента. В Claude Desktop на Windows
-это `%APPDATA%\Claude\claude_desktop_config.json`:
+это `%APPDATA%\Claude\claude_desktop_config.json`. Сформируйте JSON с реально
+выбранными путями:
 
-```json
-{
-  "mcpServers": {
-    "x64dbg": {
-      "command": "C:\\Tools\\x64dbg-mcp\\runtime\\.venv\\Scripts\\python.exe",
-      "args": [
-        "C:\\Tools\\x64dbg-mcp\\runtime\\src\\mcp_stdio_launcher.py"
-      ],
-      "env": {
-        "X64DBG_ROOT": "C:\\x64dbg",
-        "X64DBG_MCP_TOOL_PROFILE": "compact"
+```powershell
+$ClientConfig = [ordered]@{
+  mcpServers = [ordered]@{
+    x64dbg = [ordered]@{
+      command = $PythonExe
+      args = @($Launcher)
+      env = [ordered]@{
+        X64DBG_ROOT = $X64dbgRoot
+        X64DBG_MCP_TOOL_PROFILE = 'compact'
       }
     }
   }
 }
+$ClientConfig | ConvertTo-Json -Depth 6
 ```
 
 Cursor, VS Code MCP, Windsurf и другие stdio-клиенты используют тот же
@@ -341,8 +431,11 @@ Cursor, VS Code MCP, Windsurf и другие stdio-клиенты исполь�
 cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
-Copy-Item build\build64\Release\MCPx64dbg.dp64 C:\x64dbg\x64\plugins\
-Copy-Item build\build32\Release\MCPx64dbg.dp32 C:\x64dbg\x32\plugins\
+$X64dbgRoot = (Resolve-Path -LiteralPath (Read-Host 'Папка установки x64dbg')).Path
+Copy-Item build\build64\Release\MCPx64dbg.dp64 `
+  (Join-Path $X64dbgRoot 'x64\plugins\MCPx64dbg.dp64') -Force
+Copy-Item build\build32\Release\MCPx64dbg.dp32 `
+  (Join-Path $X64dbgRoot 'x32\plugins\MCPx64dbg.dp32') -Force
 ```
 
 ### Синхронизация с IDA Pro MCP Fusion

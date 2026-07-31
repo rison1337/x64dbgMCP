@@ -1797,12 +1797,15 @@ def _managed_probe_component(arch: str) -> Dict[str, Any]:
         )
     root_env = f"DOTNET_ROOT_{normalized.upper()}"
     explicit_host = os.getenv(f"X64DBG_MCP_DOTNET_{normalized.upper()}", "").strip()
+    program_files_env = "ProgramFiles(x86)" if normalized == "x86" else "ProgramFiles"
+    program_files = os.getenv(program_files_env, "").strip()
+    path_host = shutil.which("dotnet") if normalized == "x64" else ""
     root_candidates = [
         os.path.dirname(explicit_host) if explicit_host.casefold().endswith("dotnet.exe") else explicit_host,
         os.getenv(root_env, "").strip(),
         os.getenv("DOTNET_ROOT", "").strip(),
-        r"C:\ai_slop\1\.dotnet-sdk-x86" if normalized == "x86" else r"C:\ai_slop\1\.dotnet-sdk",
-        r"C:\Program Files (x86)\dotnet" if normalized == "x86" else r"C:\Program Files\dotnet",
+        os.path.dirname(path_host) if path_host else "",
+        os.path.join(program_files, "dotnet") if program_files else "",
     ]
     runtime_root = next(
         (

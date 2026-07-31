@@ -110,6 +110,35 @@ class ManagedBackendTests(unittest.TestCase):
         requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8").casefold()
         self.assertIn("dnfile>=0.17.0", requirements)
 
+    def test_managed_probe_runtime_discovery_has_no_checkout_specific_paths(self):
+        probe_suffix = os.path.normcase(
+            os.path.join("tools", "bin", "managed_probe", "x64", "x64dbg.ManagedProbe.exe")
+        )
+        portable_root = os.path.join("Z:\\Portable SDK", "dotnet")
+        portable_host = os.path.join(portable_root, "dotnet.exe")
+
+        def fake_isfile(path):
+            normalized = os.path.normcase(os.path.normpath(str(path)))
+            return normalized.endswith(probe_suffix) or normalized == os.path.normcase(portable_host)
+
+        environment = {
+            "X64DBG_MCP_MANAGED_PROBE_X64": "",
+            "X64DBG_MCP_DOTNET_X64": "",
+            "DOTNET_ROOT_X64": "",
+            "DOTNET_ROOT": "",
+            "ProgramFiles": "Z:\\Portable SDK",
+        }
+        with (
+            mock.patch.dict(os.environ, environment, clear=False),
+            mock.patch.object(self.mod.shutil, "which", return_value=None),
+            mock.patch.object(self.mod.os.path, "isfile", side_effect=fake_isfile),
+        ):
+            component = self.mod._managed_probe_component("x64")
+
+        self.assertTrue(component["ok"], component)
+        self.assertEqual(os.path.normcase(component["runtimeRoot"]), os.path.normcase(portable_root))
+        self.assertNotIn("ai_slop", json.dumps(component).casefold())
+
     def test_guarded_runtime_capture_preserves_exact_session_identity(self):
         binding = {
             "ok": True,

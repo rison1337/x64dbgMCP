@@ -23,14 +23,20 @@ function Resolve-DotNetHost {
     throw "A .NET 8 SDK host for $Architecture is required. Set X64DBG_MCP_DOTNET_$($Architecture.ToUpperInvariant())."
 }
 
-$x64Host = Resolve-DotNetHost -Explicit $DotNetX64 -Architecture "x64" -Candidates @(
-    "C:\ai_slop\1\.dotnet-sdk\dotnet.exe",
-    "C:\Program Files\dotnet\dotnet.exe"
-)
-$x86Host = Resolve-DotNetHost -Explicit $DotNetX86 -Architecture "x86" -Candidates @(
-    "C:\ai_slop\1\.dotnet-sdk-x86\dotnet.exe",
-    "C:\Program Files (x86)\dotnet\dotnet.exe"
-)
+$dotnetOnPath = Get-Command dotnet.exe -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty Source
+$x64Candidates = @($dotnetOnPath)
+if ($env:ProgramFiles) {
+    $x64Candidates += Join-Path $env:ProgramFiles "dotnet\dotnet.exe"
+}
+$x86Candidates = @()
+$programFilesX86 = ${env:ProgramFiles(x86)}
+if ($programFilesX86) {
+    $x86Candidates += Join-Path $programFilesX86 "dotnet\dotnet.exe"
+}
+
+$x64Host = Resolve-DotNetHost -Explicit $DotNetX64 -Architecture "x64" -Candidates $x64Candidates
+$x86Host = Resolve-DotNetHost -Explicit $DotNetX86 -Architecture "x86" -Candidates $x86Candidates
 
 foreach ($item in @(
     @{ Arch = "x64"; Rid = "win-x64"; Host = $x64Host },

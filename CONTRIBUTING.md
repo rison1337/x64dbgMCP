@@ -30,8 +30,8 @@ cmake --build build --target all_plugins --config Release
 ```
 
 The plugin SDK is fetched automatically (`-DX64DBG_DOWNLOAD_SDK=ON` is the
-default). Copy the built `MCPx64dbg.dp64` / `MCPx64dbg.dp32` into
-`C:\x64dbg\x64\plugins` and `C:\x64dbg\x32\plugins`.
+default). Copy the built `MCPx64dbg.dp64` / `MCPx64dbg.dp32` into the
+`x64\plugins` and `x32\plugins` directories of your own x64dbg installation.
 
 ## Running tests
 

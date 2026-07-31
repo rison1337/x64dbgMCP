@@ -127,8 +127,8 @@ jobs:
             Download `x64dbg-mcp-windows-${{ github.ref_name }}.zip`. It
             contains both plugins and the Python backend:
 
-            - `plugins\MCPx64dbg.dp64` → `C:\x64dbg\x64\plugins\`
-            - `plugins\MCPx64dbg.dp32` → `C:\x64dbg\x32\plugins\`
+            - `plugins\MCPx64dbg.dp64` → `<your-x64dbg-root>\x64\plugins\`
+            - `plugins\MCPx64dbg.dp32` → `<your-x64dbg-root>\x32\plugins\`
             - `runtime\src` + `runtime\requirements.txt`
 
             Extract the bundle, copy both plugins, create a Python 3.11+
