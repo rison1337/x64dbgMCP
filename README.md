@@ -215,39 +215,15 @@ retryable. See the
 [Fusion README](https://github.com/rison1337/ida-pro-mcp-fusion#english) for
 the IDA-side worker and cache model.
 
-### Honest boundaries
-
-- Protected or virtualized code may require a manual trace-and-recover workflow;
-  the backend keeps uncertain results explicit instead of inventing a recovery.
-- Managed inspection works with post-JIT runtime evidence; full pre-JIT ICorDebug
-  is a separate research track.
-- Kernel-assisted workflows are optional. Analyze untrusted binaries inside a
-  disposable VM.
-
 ### Documentation
 
-- [Demo workflow](docs/DEMO.md)
 - [Tool reference](docs/TOOL_REFERENCE.md)
 - [Security model](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)
 
 CI covers the Python contract and both native plugin architectures; detailed
-live-gate output is retained in the GitHub Actions workflow logs.
-
-Architecture:
-
-```text
-MCP client
-    │ stdio
-    ▼
-Python MCP server
-    │ authenticated loopback
-    ▼
-x64dbg/x32dbg plugin
-    │ in-process
-    ▼
-target process
-```
+live-gate output is retained in the GitHub Actions workflow logs. Analyze
+untrusted binaries inside a disposable VM.
 
 GPL-3.0. Based on
 [x64dbgMCP by Sam W (Wasdubya)](https://github.com/Wasdubya/x64dbgMCP).
@@ -459,40 +435,15 @@ x64dbg MCP не подменяет IDA и не пишет в случайную 
 связь по нестабильным VA. Подробности: [coordinator](tools/ida_evidence_coordinator.py)
 и [README Fusion](https://github.com/rison1337/ida-pro-mcp-fusion#english).
 
-### Честные ограничения
-
-- Защищённый или виртуализированный код может потребовать ручного
-  trace-and-recover workflow; backend явно помечает неопределённость и не
-  выдумывает результат.
-- Managed-анализ использует post-JIT evidence; полный pre-JIT ICorDebug —
-  отдельное исследовательское направление.
-- Драйверные функции опциональны. Неизвестные бинарники анализируйте в
-  одноразовой VM.
-
 ### Документация
 
-- [Демонстрационный workflow](docs/DEMO.md)
 - [Справочник инструментов](docs/TOOL_REFERENCE.md)
 - [Модель безопасности](SECURITY.md)
 - [Участие в разработке](CONTRIBUTING.md)
 
 CI проверяет Python-контракт и native-плагины обеих архитектур; подробный
-live-gate вывод сохраняется в логах GitHub Actions.
-
-Архитектура:
-
-```text
-MCP-клиент
-    │ stdio
-    ▼
-Python MCP server
-    │ защищённый loopback
-    ▼
-плагин x64dbg/x32dbg
-    │ in-process
-    ▼
-процесс-цель
-```
+live-gate вывод сохраняется в логах GitHub Actions. Неизвестные бинарники
+анализируйте в одноразовой VM.
 
 GPL-3.0. Проект основан на
 [x64dbgMCP Sam W (Wasdubya)](https://github.com/Wasdubya/x64dbgMCP).

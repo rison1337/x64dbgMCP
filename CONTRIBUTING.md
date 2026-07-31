@@ -125,11 +125,6 @@ same-path replacement, session turnover, and an intent-gated forced readback
 failure that must restore the original bytes. The fault-injection header is a
 test harness contract only; do not expose or enable it in normal clients.
 
-The optional virtualization-research work is currently deferred. Keep
-experimental anti-analysis fixtures outside the normal MCP build and test
-paths; the repository intentionally ships only the supported runtime backend
-and its benign test corpus.
-
 ## Coding conventions
 
 - Match the surrounding style.
@@ -148,10 +143,3 @@ and its benign test corpus.
 
 By contributing you agree that your contributions are licensed under the
 project's **GPL-3.0** license.
-
-## Known future work (good first issues welcome)
-
-- Mutation transactions and breakpoint ownership/leases.
-- Native API/heap trace provenance and real basic-block coverage.
-- Unify any remaining internal legacy call sites before the documented
-  `safe_get`/`safe_post` shim sunset.
