@@ -4362,7 +4362,13 @@ def InitDebuggee(
     capture_limit_bytes: int = _DEFAULT_CAPTURE_LIMIT_BYTES,
 ) -> dict:
     """
-    Reliably start a new debuggee with retries and state verification.
+    Preferred first call when the target executable path is known.
+
+    Reliably start a new debuggee with retries and state verification. This
+    tool detects the target architecture, resolves X64DBG_ROOT, starts the
+    matching x32dbg/x64dbg instance, waits for its authenticated bridge, and
+    opens the target. Do not preflight BridgeHello, probe port 8888, or search
+    debugger installation paths manually before calling InitDebuggee.
 
     Args:
         exe_path: Absolute path to the executable.

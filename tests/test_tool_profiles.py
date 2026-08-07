@@ -91,6 +91,18 @@ class ToolProfileCatalogTests(unittest.TestCase):
         ):
             self.assertNotIn(low_level, compact)
 
+    def test_compact_startup_contract_is_target_first(self):
+        instructions = " ".join(self.server.MCP_SERVER_INSTRUCTIONS.split())
+        init_doc = self.server.InitDebuggee.__doc__ or ""
+        bridge_doc = self.server.BridgeHello.__doc__ or ""
+
+        self.assertIn("call InitDebuggee directly", instructions)
+        self.assertIn("Do not preflight BridgeHello", instructions)
+        self.assertIn("resolves X64DBG_ROOT", init_doc)
+        self.assertIn("Do not preflight BridgeHello", init_doc)
+        self.assertIn("Diagnostic only", bridge_doc)
+        self.assertIn("call InitDebuggee directly", bridge_doc)
+
     def test_primary_categories_cover_every_tool_exactly_once(self):
         categories = self.catalog["categories"]
         flattened = [name for names in categories.values() for name in names]

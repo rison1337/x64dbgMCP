@@ -37,7 +37,7 @@ the evidence to IDA.
 
 | Workflow | Representative tools | Result |
 | --- | --- | --- |
-| Launch and bind | `LaunchFileUnderDebugger`, `AttachToProcess`, `LaunchAndOpenDebuggee`, `WaitForBreakpoint` | Reproducible process and session identity |
+| Launch and bind | `InitDebuggee`, `AttachToProcess`, `LaunchFileUnderDebugger`, `WaitForBreakpoint` | Reproducible process and session identity |
 | Live control | `RegisterGet`, `RegisterSet`, `MemoryRead`, `MemoryWrite`, `DebugSetBreakpoint`, `SetHardwareBreakpoint` | Controlled execution, memory and breakpoint changes |
 | Runtime evidence | `RunNativeTrace`, `GetNativeTrace`, `StartApiTrace`, `StartHeapTrace`, `GetBasicBlockCoverage`, `WaitForBreakpointCapture` | Instruction paths, API/heap calls, exceptions and executed blocks |
 | Key and unpack recovery | `SearchStrings`, `ScanMemoryStrings`, `PatternFindMem`, `FindOEP`, `RunUntilOEP`, `FindIATCandidates`, `InspectRuntimeIAT` | Comparisons, strings, OEP and runtime import candidates |
@@ -121,7 +121,12 @@ X64DBG_ROOT = '<X64dbgRoot>'
 X64DBG_MCP_TOOL_PROFILE = 'compact'
 ```
 
-Start x64dbg or x32dbg and verify the bridge:
+For normal target startup, call `InitDebuggee` directly with the EXE path. It
+detects x86/x64, starts the matching debugger from `X64DBG_ROOT`, waits for the
+bridge and opens the target. A separate `BridgeHello` preflight or manual
+debugger-path search is not required.
+
+Optional installation check: start x64dbg or x32dbg and verify the bridge:
 
 ```powershell
 & $PythonExe (Join-Path $RuntimeRoot 'src\x64dbg.py') GetDebuggerPluginStatus
@@ -262,7 +267,7 @@ x64dbg MCP даёт MCP-клиенту защищённое управление
 
 | Этап | Примеры MCP tools | Что получается |
 | --- | --- | --- |
-| Запуск и привязка | `LaunchFileUnderDebugger`, `AttachToProcess`, `LaunchAndOpenDebuggee`, `WaitForBreakpoint` | Воспроизводимый процесс и точная session identity |
+| Запуск и привязка | `InitDebuggee`, `AttachToProcess`, `LaunchFileUnderDebugger`, `WaitForBreakpoint` | Воспроизводимый процесс и точная session identity |
 | Управление | `RegisterGet`, `RegisterSet`, `MemoryRead`, `MemoryWrite`, `DebugSetBreakpoint`, `SetHardwareBreakpoint` | Контролируемый run/step, память и breakpoint'ы |
 | Runtime evidence | `RunNativeTrace`, `GetNativeTrace`, `StartApiTrace`, `StartHeapTrace`, `GetBasicBlockCoverage`, `WaitForBreakpointCapture` | Пути инструкций, API/heap, исключения и выполненные блоки |
 | Поиск ключей и unpack | `SearchStrings`, `ScanMemoryStrings`, `PatternFindMem`, `FindOEP`, `RunUntilOEP`, `FindIATCandidates`, `InspectRuntimeIAT` | Сравнения, строки, OEP и кандидаты runtime-IAT |
@@ -345,7 +350,13 @@ X64DBG_ROOT = '<X64dbgRoot>'
 X64DBG_MCP_TOOL_PROFILE = 'compact'
 ```
 
-Запустите x64dbg или x32dbg и проверьте bridge:
+Для обычного запуска цели сразу вызовите `InitDebuggee` с путём к EXE.
+Инструмент сам определит x86/x64, запустит подходящий debugger из
+`X64DBG_ROOT`, дождётся bridge и откроет цель. Отдельная проверка через
+`BridgeHello` и ручной поиск пути к x64dbg не нужны.
+
+Необязательная проверка установки: запустите x64dbg или x32dbg и проверьте
+bridge:
 
 ```powershell
 & $PythonExe (Join-Path $RuntimeRoot 'src\x64dbg.py') GetDebuggerPluginStatus

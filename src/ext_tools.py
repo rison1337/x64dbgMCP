@@ -1294,8 +1294,23 @@ def register(mcp, g: Dict[str, Any]) -> None:
             debugging = False
         if not debugging:
             reasons.append("no_debuggee")
-            hints.append("Call LaunchFileUnderDebugger or AttachToProcess.")
-            return {"ok": False, "reasons": reasons, "hints": hints}
+            hints.append(
+                "If the target EXE path is known, call InitDebuggee directly; "
+                "it selects and starts x32dbg/x64dbg from X64DBG_ROOT and "
+                "waits for the bridge. Do not preflight BridgeHello or search "
+                "installation paths manually. Use AttachToProcess only for an "
+                "already-running target."
+            )
+            return {
+                "ok": False,
+                "reasons": reasons,
+                "hints": hints,
+                "nextAction": {
+                    "tool": "InitDebuggee",
+                    "when": "target_executable_path_is_known",
+                    "arguments": {"exe_path": "<absolute-target-exe-path>"},
+                },
+            }
         lean = GetDebugStateLean()
         if not lean.get("paused"):
             reasons.append("running")

@@ -1,4 +1,13 @@
-mcp = FastMCP("x64dbg-mcp")
+MCP_SERVER_INSTRUCTIONS = """
+Target-first startup rule: when an executable path is known, call InitDebuggee
+directly. InitDebuggee detects x86/x64, resolves the configured X64DBG_ROOT,
+starts the matching x32dbg/x64dbg instance, waits for its authenticated bridge,
+and opens the target. Do not preflight BridgeHello, probe 127.0.0.1:8888, or
+search common installation paths manually before InitDebuggee. BridgeHello is
+for inspecting the identity of a debugger bridge that is already running.
+""".strip()
+
+mcp = FastMCP("x64dbg-mcp", instructions=MCP_SERVER_INSTRUCTIONS)
 
 # These session-management functions are defined earlier because the legacy
 # bridge helpers use them during module initialization. Register them only
@@ -2212,6 +2221,11 @@ def safe_post(
 def BridgeHello(refresh: bool = True) -> dict:
     """Return the authoritative debugger bridge and debug-session identity.
 
+    Diagnostic only for a debugger that is already running. When a target EXE
+    path is known, call InitDebuggee directly instead of using BridgeHello as a
+    preflight check; InitDebuggee selects and starts x32dbg/x64dbg from the
+    configured X64DBG_ROOT and waits for this bridge automatically.
+
     This is the identity used by every state-changing operation.  ``ok`` is
     false for a legacy bridge because it cannot provide atomic stale-session
     protection.
@@ -2234,6 +2248,17 @@ def BridgeHello(refresh: bool = True) -> dict:
             "error": envelope.error.as_dict() if envelope.error else None,
             "meta": envelope.meta,
             "cachedIdentity": cached or None,
+            "hint": (
+                "If the target executable path is known, call InitDebuggee "
+                "directly. It selects and starts x32dbg/x64dbg from "
+                "X64DBG_ROOT and waits for the bridge; do not search common "
+                "installation paths manually."
+            ),
+            "nextAction": {
+                "tool": "InitDebuggee",
+                "when": "target_executable_path_is_known",
+                "arguments": {"exe_path": "<absolute-target-exe-path>"},
+            },
         }
     identity = _cache_bridge_identity(envelope.data)
     if not identity.get("bridgeInstanceId"):

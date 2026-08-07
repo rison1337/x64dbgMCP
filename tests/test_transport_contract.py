@@ -124,6 +124,27 @@ class BridgeTransportContractTests(unittest.TestCase):
         self.assertEqual(result.error.code, "INVALID_RESPONSE")
         self.assertIn("broken-json", result.error.details["bodyPreview"])
 
+    def test_bridge_hello_failure_points_known_targets_to_init_debuggee(self):
+        failure = self.mod.BridgeEnvelope(
+            False,
+            error=self.mod.BridgeError(
+                code="BRIDGE_UNAVAILABLE",
+                message="No debugger bridge is listening.",
+                retryable=True,
+            ),
+            meta={"endpoint": "Bridge/Hello"},
+        )
+        with mock.patch.object(self.mod, "_bridge_request", return_value=failure):
+            result = self.mod.BridgeHello(refresh=True)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["nextAction"]["tool"], "InitDebuggee")
+        self.assertEqual(
+            result["nextAction"]["when"], "target_executable_path_is_known"
+        )
+        self.assertIn("X64DBG_ROOT", result["hint"])
+        self.assertIn("do not search", result["hint"].lower())
+
     def test_idempotent_read_retries_with_same_request_id(self):
         session = self._install_fake(
             requests.exceptions.Timeout("first timeout"),

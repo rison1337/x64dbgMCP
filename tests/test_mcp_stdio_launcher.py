@@ -77,6 +77,11 @@ class McpStdioLauncherTests(unittest.TestCase):
         ]
         by_id = {item.get("id"): item for item in responses if "id" in item}
         self.assertIn("serverInfo", by_id[1]["result"])
+        startup_instructions = " ".join(
+            by_id[1]["result"].get("instructions", "").split()
+        )
+        self.assertIn("call InitDebuggee directly", startup_instructions)
+        self.assertIn("Do not preflight BridgeHello", startup_instructions)
         tools = by_id[2]["result"]["tools"]
         expected = _load_profiles().known_tool_names()
         self.assertEqual({item["name"] for item in tools}, set(expected))

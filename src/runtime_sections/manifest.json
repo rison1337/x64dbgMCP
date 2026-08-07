@@ -1,8 +1,8 @@
 {
   "schema": "x64dbg-mcp-runtime-sections-v1",
   "source": "x64dbg_runtime.py",
-  "sourceLineCount": 42009,
-  "sourceSha256": "BE9970F3E3BD1A5045EEBF583E8E30C6826343BFB252B4C23446C1E519B9C242",
+  "sourceLineCount": 42040,
+  "sourceSha256": "0EA5C2A3B165439161A7B28DC41C7AD76E1009478CED1C7656288F45A5753575",
   "sections": [
     {
       "name": "00_bootstrap_and_session.py",
@@ -14,49 +14,49 @@
     {
       "name": "10_result_and_transport.py",
       "startLine": 12275,
-      "endLine": 14764,
-      "lineCount": 2490,
-      "sha256": "E9F7E7263B6E419778EDABB07FFDF61D471EE61FD3D24B8CE09F6B3E2FD76D41"
+      "endLine": 14789,
+      "lineCount": 2515,
+      "sha256": "4293C901D10C09172307D4F895CF0AE3AE5176B135DD35972EA9705F78FAB9DB"
     },
     {
       "name": "20_debugger_workflows.py",
-      "startLine": 14765,
-      "endLine": 23164,
-      "lineCount": 8400,
-      "sha256": "D122462E78F8EA9863308222E4042E4B277053C76B92D89D6B95DF386D55A488"
+      "startLine": 14790,
+      "endLine": 23195,
+      "lineCount": 8406,
+      "sha256": "8B70ABEDE0B92CFED9F18B96AE68556AAF5B798E55A6D0C87C1FD64D96E2739F"
     },
     {
       "name": "30_trace_heap_coverage.py",
-      "startLine": 23165,
-      "endLine": 29458,
+      "startLine": 23196,
+      "endLine": 29489,
       "lineCount": 6294,
       "sha256": "F538570B51CF767F769DE71001454A9CAACD57AB36E69765BF67EFF2E60976E2"
     },
     {
       "name": "40_unpack_and_dump.py",
-      "startLine": 29459,
-      "endLine": 34644,
+      "startLine": 29490,
+      "endLine": 34675,
       "lineCount": 5186,
       "sha256": "BE95BCAEE701AFCE5A010841FBBA248E1C5839FE5F6AB8A587E48F58134F259A"
     },
     {
       "name": "50_debugger_api_surface.py",
-      "startLine": 34645,
-      "endLine": 38817,
+      "startLine": 34676,
+      "endLine": 38848,
       "lineCount": 4173,
       "sha256": "6BA8D63D8136B989B675913DDC06291622043FE080C3921E3BC6107D033CAF03"
     },
     {
       "name": "60_evidence_and_managed.py",
-      "startLine": 38818,
-      "endLine": 41838,
+      "startLine": 38849,
+      "endLine": 41869,
       "lineCount": 3021,
       "sha256": "47C3A3B076F27FAE650247BAB9B4B510DE6D16AD6BC2DAA0023C2E31F5EAC390"
     },
     {
       "name": "70_registration_and_cli.py",
-      "startLine": 41839,
-      "endLine": 42009,
+      "startLine": 41870,
+      "endLine": 42040,
       "lineCount": 171,
       "sha256": "A57567DC6E36CBFBD6773987304DF3C5C0BB106CFAC9A1D3C553537A6311DFF7"
     }
