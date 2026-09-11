@@ -4806,6 +4806,23 @@ def _run_managed_runtime_probe_adapter(
                 if isinstance(candidate, dict)
                 else 0,
                 "tokenFound": bool(candidate_methods),
+                "errorCode": (
+                    candidate.get("errorCode")
+                    or (
+                        candidate.get("error", {}).get("code")
+                        if isinstance(candidate.get("error"), dict)
+                        else None
+                    )
+                )
+                if isinstance(candidate, dict)
+                else None,
+                "error": (
+                    candidate.get("error", {}).get("message")
+                    if isinstance(candidate.get("error"), dict)
+                    else candidate.get("error")
+                )
+                if isinstance(candidate, dict)
+                else None,
             }
         )
         if candidate_methods:

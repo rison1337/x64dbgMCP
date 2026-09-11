@@ -447,6 +447,63 @@ class SessionWorkflowTests(unittest.TestCase):
         self.assertIn("Unknown HideMain mode", result["error"])
         self.assertEqual(calls, [])
 
+    def test_direct_init_readiness_refreshes_bridge_even_with_cached_capabilities(self):
+        stale_identity = {
+            "bridgeInstanceId": "dead-bridge",
+            "capabilities": {"launch": {"version": 2}},
+        }
+        hello_payload = {
+            "bridgeInstanceId": "live-bridge",
+            "protocolVersion": 4,
+            "debugger": {"pid": 1234, "architecture": "x64"},
+            "capabilities": {"launch": {"version": 2}},
+        }
+        with self.mod._RUNTIME_LOCK:
+            self.mod._RUNTIME_STATE["bridgeIdentity"] = stale_identity
+        with (
+            mock.patch.object(self.mod, "_detect_pe_arch", return_value="x64"),
+            mock.patch.object(
+                self.mod,
+                "EnsureDebugger",
+                return_value={"ok": True, "requestedArch": "x64"},
+            ) as ensure,
+            mock.patch.object(
+                self.mod,
+                "_bridge_request",
+                return_value=self.mod.BridgeEnvelope(True, data=hello_payload),
+            ) as hello,
+        ):
+            result = self.mod._ensure_init_debugger_bridge(
+                r"C:\targets\sample.exe", 5000
+            )
+
+        self.assertTrue(result["ok"], result)
+        ensure.assert_called_once_with(arch="x64", timeout_ms=5000, restart=False)
+        hello.assert_called_once()
+        self.assertEqual(
+            self.mod._get_cached_bridge_identity()["bridgeInstanceId"], "live-bridge"
+        )
+
+    def test_bound_state_refresh_replaces_pre_binding_snapshot(self):
+        refreshed = {
+            "debugging": True,
+            "debuggeePid": 4242,
+            "session": {"sessionId": "session-1"},
+        }
+        match = {"active": True, "matches": True, "reason": "matched"}
+        with (
+            mock.patch.object(self.mod, "_build_debug_state", return_value=refreshed),
+            mock.patch.object(
+                self.mod, "_describe_bound_session_match", return_value=match
+            ),
+        ):
+            result = self.mod._refresh_state_after_session_binding(
+                {"debugging": True, "binding": {"active": False}}
+            )
+
+        self.assertEqual(result["binding"], match)
+        self.assertEqual(result["session"]["binding"], match)
+
     def test_launch_and_open_debuggee_delegates_to_launch_file_under_debugger(self):
         calls = []
 

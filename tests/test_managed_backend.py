@@ -139,6 +139,32 @@ class ManagedBackendTests(unittest.TestCase):
         self.assertEqual(os.path.normcase(component["runtimeRoot"]), os.path.normcase(portable_root))
         self.assertNotIn("ai_slop", json.dumps(component).casefold())
 
+    def test_framework_dependent_x86_probe_requires_matching_runtime(self):
+        probe_suffix = os.path.normcase(
+            os.path.join("tools", "bin", "managed_probe", "x86", "x64dbg.ManagedProbe.exe")
+        )
+
+        def fake_isfile(path):
+            return os.path.normcase(os.path.normpath(str(path))).endswith(probe_suffix)
+
+        environment = {
+            "X64DBG_MCP_MANAGED_PROBE_X86": "",
+            "X64DBG_MCP_DOTNET_X86": "",
+            "DOTNET_ROOT_X86": "",
+            "DOTNET_ROOT": r"C:\Program Files\dotnet",
+            "ProgramFiles(x86)": r"C:\Program Files (x86)",
+        }
+        with (
+            mock.patch.dict(os.environ, environment, clear=False),
+            mock.patch.object(self.mod.shutil, "which", return_value=None),
+            mock.patch.object(self.mod.os.path, "isfile", side_effect=fake_isfile),
+        ):
+            component = self.mod._managed_probe_component("x86")
+
+        self.assertFalse(component["ok"], component)
+        self.assertEqual(component["errorCode"], "MANAGED_RUNTIME_UNAVAILABLE")
+        self.assertIn("DOTNET_ROOT_X86", component["error"])
+
     def test_guarded_runtime_capture_preserves_exact_session_identity(self):
         binding = {
             "ok": True,

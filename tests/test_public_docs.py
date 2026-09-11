@@ -86,6 +86,39 @@ class PublicDocumentationTests(unittest.TestCase):
             for value in forbidden:
                 self.assertNotIn(value, text, f"machine-specific path in {path.name}: {value}")
 
+    def test_release_bundles_self_contained_managed_probes(self):
+        build_script = (ROOT / "tools" / "build_managed_probe.ps1").read_text(
+            encoding="utf-8"
+        )
+        release = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--self-contained true", build_script)
+        self.assertNotIn("--self-contained false", build_script)
+        self.assertIn("tools/build_managed_probe.ps1", release)
+        for arch in ("x64", "x86"):
+            self.assertIn(
+                f"tools\\bin\\managed_probe\\{arch}\\x64dbg.ManagedProbe.exe",
+                release,
+            )
+            self.assertIn(
+                f"tools\\bin\\managed_probe\\{arch}\\hostfxr.dll",
+                release,
+            )
+            self.assertIn(
+                f"tools\\bin\\managed_probe\\{arch}\\coreclr.dll",
+                release,
+            )
+            for notice in (
+                "DOTNET-RUNTIME-LICENSE.txt",
+                "DOTNET-RUNTIME-THIRD-PARTY-NOTICES.txt",
+                "MANAGED-PROBE-THIRD-PARTY-NOTICES.txt",
+            ):
+                self.assertIn(
+                    f"tools\\bin\\managed_probe\\{arch}\\{notice}",
+                    release,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

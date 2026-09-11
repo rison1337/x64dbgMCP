@@ -58,6 +58,7 @@ native plugins and the Python backend:
 - `plugins\MCPx64dbg.dp64` for x64dbg
 - `plugins\MCPx64dbg.dp32` for x32dbg
 - `runtime\src` and `runtime\requirements.txt`
+- self-contained x64/x86 managed-runtime probes under `runtime\tools\bin\managed_probe`
 
 Close x64dbg/x32dbg. Open PowerShell in the folder containing the downloaded
 ZIP, then run the block below. It asks where to keep the MCP bundle and where
@@ -287,6 +288,7 @@ Windows-архив. Внутри сразу есть оба native-плагин�
 - `plugins\MCPx64dbg.dp64` для x64dbg
 - `plugins\MCPx64dbg.dp32` для x32dbg
 - `runtime\src` и `runtime\requirements.txt`
+- автономные x64/x86 managed-runtime probes в `runtime\tools\bin\managed_probe`
 
 Закройте x64dbg/x32dbg. Откройте PowerShell в папке со скачанным ZIP и
 выполните блок ниже. Он сам запросит папку для MCP и путь к уже установленному

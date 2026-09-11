@@ -77,3 +77,45 @@ jobs:
             build/**/MCPx64dbg.dp64
             build/**/MCPx64dbg.dp32
           if-no-files-found: error
+
+  build-managed-probes:
+    name: Build managed probes (self-contained x86 + x64)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+      - name: Publish both architectures
+        shell: pwsh
+        run: tools/build_managed_probe.ps1
+      - name: Verify self-contained hosts
+        shell: pwsh
+        run: |
+          foreach ($arch in @("x64", "x86")) {
+            $root = Join-Path $PWD "tools\bin\managed_probe\$arch"
+            foreach ($name in @(
+              "x64dbg.ManagedProbe.exe",
+              "hostfxr.dll",
+              "coreclr.dll",
+              "DOTNET-RUNTIME-LICENSE.txt",
+              "DOTNET-RUNTIME-THIRD-PARTY-NOTICES.txt",
+              "MANAGED-PROBE-THIRD-PARTY-NOTICES.txt"
+            )) {
+              $path = Join-Path $root $name
+              if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+                throw "Missing $arch managed probe file: $path"
+              }
+            }
+            $probe = Join-Path $root "x64dbg.ManagedProbe.exe"
+            $json = & $probe --pid 2147483000
+            if ($LASTEXITCODE -eq 0) {
+              throw "$arch managed probe unexpectedly accepted a nonexistent PID."
+            }
+            $payload = $json | ConvertFrom-Json
+            if ($payload.schema -ne "x64dbg-mcp-managed-probe-v1") {
+              throw "$arch managed probe returned an invalid schema."
+            }
+            $global:LASTEXITCODE = 0
+          }

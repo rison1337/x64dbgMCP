@@ -1795,6 +1795,11 @@ def _managed_probe_component(arch: str) -> Dict[str, Any]:
             buildScript=str(repo_root / "tools" / "build_managed_probe.ps1"),
             architecture=normalized,
         )
+    component_dir = os.path.dirname(executable)
+    self_contained = all(
+        os.path.isfile(os.path.join(component_dir, name))
+        for name in ("hostfxr.dll", "coreclr.dll")
+    )
     root_env = f"DOTNET_ROOT_{normalized.upper()}"
     explicit_host = os.getenv(f"X64DBG_MCP_DOTNET_{normalized.upper()}", "").strip()
     program_files_env = "ProgramFiles(x86)" if normalized == "x86" else "ProgramFiles"
@@ -1803,7 +1808,7 @@ def _managed_probe_component(arch: str) -> Dict[str, Any]:
     root_candidates = [
         os.path.dirname(explicit_host) if explicit_host.casefold().endswith("dotnet.exe") else explicit_host,
         os.getenv(root_env, "").strip(),
-        os.getenv("DOTNET_ROOT", "").strip(),
+        os.getenv("DOTNET_ROOT", "").strip() if normalized == "x64" else "",
         os.path.dirname(path_host) if path_host else "",
         os.path.join(program_files, "dotnet") if program_files else "",
     ]
@@ -1811,14 +1816,30 @@ def _managed_probe_component(arch: str) -> Dict[str, Any]:
         (
             os.path.abspath(item)
             for item in root_candidates
-            if item and os.path.isfile(os.path.join(item, "dotnet.exe"))
+            if item
+            and os.path.isfile(os.path.join(item, "dotnet.exe"))
+            and _detect_pe_arch(os.path.join(item, "dotnet.exe")) in (None, normalized)
         ),
         "",
     )
+    if not self_contained and not runtime_root:
+        return _analysis_error(
+            "MANAGED_RUNTIME_UNAVAILABLE",
+            (
+                f"The {normalized} managed probe is framework-dependent, but a matching "
+                ".NET 8 runtime could not be found. Rebuild the release sidecar as "
+                f"self-contained or set {root_env}."
+            ),
+            architecture=normalized,
+            executable=executable,
+            runtimeEnvironment=root_env,
+            buildScript=str(repo_root / "tools" / "build_managed_probe.ps1"),
+        )
     return {
         "ok": True,
         "architecture": normalized,
         "executable": executable,
+        "selfContained": self_contained,
         "runtimeRoot": runtime_root or None,
         "runtimeEnvironment": root_env,
     }
@@ -1929,6 +1950,7 @@ def _managed_probe_invoke(
     payload["component"] = {
         "architecture": component.get("architecture"),
         "executable": component.get("executable"),
+        "selfContained": component.get("selfContained"),
         "runtimeRoot": component.get("runtimeRoot"),
         "exitCode": int(completed.returncode),
         "elapsedMs": round((time.monotonic() - started) * 1000.0, 2),

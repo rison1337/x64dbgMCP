@@ -466,6 +466,107 @@ def _should_auto_restart_debugger(ensure_result: Any) -> bool:
     )
 
 
+def _ensure_init_debugger_bridge(exe_path: str, timeout_ms: int) -> Dict[str, Any]:
+    """Ensure and freshly identify the bridge for a direct InitDebuggee call."""
+
+    target_arch = _detect_pe_arch(exe_path)
+    desired_arch = _normalize_debugger_arch("auto", exe_path=exe_path)
+    wait_budget = min(max(int(timeout_ms or 0), 1000), 20000)
+    ensured = EnsureDebugger(
+        arch=desired_arch,
+        timeout_ms=wait_budget,
+        restart=False,
+    )
+    recovery = None
+    if not isinstance(ensured, dict) or not ensured.get("ok"):
+        if _should_auto_restart_debugger(ensured):
+            recovery = RestartDebugger(
+                arch=desired_arch,
+                timeout_ms=wait_budget,
+                reload_target=False,
+            )
+            if isinstance(recovery, dict) and recovery.get("ok"):
+                ensured = recovery
+    if not isinstance(ensured, dict) or not ensured.get("ok"):
+        error = (
+            str((ensured or {}).get("error") or "")
+            if isinstance(ensured, dict)
+            else str(ensured or "")
+        )
+        return {
+            "ok": False,
+            "errorCode": "BRIDGE_UNAVAILABLE",
+            "error": error or "The matching x64dbg bridge could not be started or reached.",
+            "targetArch": target_arch,
+            "requestedArch": desired_arch,
+            "ensureDebugger": ensured,
+            "recoveryDebugger": recovery,
+        }
+
+    hello = _bridge_request(
+        "GET",
+        "Bridge/Hello",
+        log=False,
+        timeout_sec=max(1.0, min(3.0, wait_budget / 1000.0)),
+        guard="none",
+        idempotent=True,
+    )
+    if not hello.ok:
+        message = hello.error.message if hello.error else "Bridge/Hello failed."
+        return {
+            "ok": False,
+            "errorCode": "BRIDGE_UNAVAILABLE",
+            "error": message,
+            "targetArch": target_arch,
+            "requestedArch": desired_arch,
+            "ensureDebugger": ensured,
+            "recoveryDebugger": recovery,
+        }
+    identity = _cache_bridge_identity(hello.data)
+    if not identity.get("bridgeInstanceId"):
+        return {
+            "ok": False,
+            "errorCode": "BRIDGE_IDENTITY_UNAVAILABLE",
+            "error": "Bridge/Hello did not return an authoritative bridge identity.",
+            "targetArch": target_arch,
+            "requestedArch": desired_arch,
+            "ensureDebugger": ensured,
+            "recoveryDebugger": recovery,
+        }
+    return {
+        "ok": True,
+        "targetArch": target_arch,
+        "requestedArch": desired_arch,
+        "ensureDebugger": ensured,
+        "recoveryDebugger": recovery,
+        "identity": identity,
+    }
+
+
+def _refresh_state_after_session_binding(fallback: Any) -> Dict[str, Any]:
+    """Return a state snapshot whose embedded binding matches the live binding."""
+
+    try:
+        refreshed = _build_debug_state(
+            include_console=False,
+            include_callstack=False,
+            max_console_chars=0,
+        )
+    except Exception:
+        refreshed = {}
+    state = dict(refreshed) if isinstance(refreshed, dict) and refreshed else dict(
+        fallback if isinstance(fallback, dict) else {}
+    )
+    binding_state = _describe_bound_session_match(state=state)
+    state["binding"] = binding_state
+    session = state.get("session")
+    if isinstance(session, dict):
+        session = dict(session)
+        session["binding"] = binding_state
+        state["session"] = session
+    return state
+
+
 def _is_stale_launch_contract_error(result: Any) -> bool:
     """Return True only for the safe-to-retry stale launch-contract failure.
 
@@ -4429,20 +4530,18 @@ def InitDebuggee(
             "errorCode": "INVALID_ARGUMENT",
             "timedOut": False,
         }
-    if not _get_cached_bridge_identity().get("bridgeInstanceId"):
-        hello = _bridge_request(
-            "GET",
-            "Bridge/Hello",
-            log=False,
-            timeout_sec=1.0,
-            guard="none",
-            idempotent=True,
-        )
-        if hello.ok:
-            _cache_bridge_identity(hello.data)
+    bridge_ready = _ensure_init_debugger_bridge(exe_path, timeout_ms)
+    if not bridge_ready.get("ok"):
+        return {
+            **bridge_ready,
+            "attempts": 0,
+            "exePath": exe_path,
+            "timedOut": False,
+        }
+    target_arch = bridge_ready.get("targetArch")
+    bridge_recovery = bridge_ready.get("recoveryDebugger")
     launch_caps = _launch_capabilities()
     capability_error = _validate_launch_v2_capabilities(launch_spec, launch_caps)
-    bridge_recovery = None
     if capability_error and _is_stale_launch_contract_error(capability_error):
         # A debugger instance started before the current plugin was installed can
         # still answer Bridge/Hello while advertising launch.version=0.  Typed
@@ -4522,7 +4621,6 @@ def InitDebuggee(
             "capability": "launch.environment",
             "timedOut": False,
         }
-    target_arch = _detect_pe_arch(exe_path)
     debugger_info = _get_active_debugger_info()
     active_arch = debugger_info.get("arch")
     if (
@@ -4690,6 +4788,7 @@ def InitDebuggee(
                         strict=True,
                         source="InitDebuggee:HideMainFailed",
                     )
+                    state = _refresh_state_after_session_binding(state)
                     _log_event(
                         "init_debuggee_hidemain_failed",
                         exePath=exe_path,
@@ -4909,6 +5008,7 @@ def InitDebuggee(
                             strict=True,
                             source="InitDebuggee:ScyllaHideFailed",
                         )
+                        failed_state = _refresh_state_after_session_binding(failed_state)
                         _log_event(
                             "init_debuggee_scyllahide_failed",
                             exePath=exe_path,
@@ -4946,6 +5046,7 @@ def InitDebuggee(
                     strict=True,
                     source="InitDebuggee",
                 )
+                state = _refresh_state_after_session_binding(state)
                 return {
                     "ok": True,
                     "attempts": attempt,

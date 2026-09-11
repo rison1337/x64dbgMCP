@@ -545,6 +545,20 @@ def find_vsdevcmd() -> Path:
     raise CorpusBuildError("Visual Studio 2022 C++ toolchain was not found")
 
 
+def _sanitized_command_environment(source: dict[str, str]) -> dict[str, str]:
+    """Remove shell-breaking quotes from PATH entries inherited by cmd.exe."""
+
+    environment = dict(source)
+    for key in list(environment):
+        if key.casefold() == "path":
+            environment[key] = ";".join(
+                part.strip().strip('"')
+                for part in str(environment[key] or "").split(";")
+                if part.strip().strip('"')
+            )
+    return environment
+
+
 def capture_msvc_environment(vsdevcmd: Path, arch: str) -> dict[str, str]:
     if arch not in ALLOWED_ARCHITECTURES:
         raise CorpusBuildError(f"unsupported architecture: {arch}")
@@ -567,10 +581,12 @@ def capture_msvc_environment(vsdevcmd: Path, arch: str) -> dict[str, str]:
             script.write("if errorlevel 1 exit /b %errorlevel%\r\n")
             script.write("set\r\n")
             script_path = Path(script.name)
+        inherited_environment = _sanitized_command_environment(dict(os.environ))
         completed = subprocess.run(
             [comspec, "/d", "/u", "/c", str(script_path)],
             check=False,
             capture_output=True,
+            env=inherited_environment,
         )
     finally:
         if script_path is not None:
@@ -581,7 +597,7 @@ def capture_msvc_environment(vsdevcmd: Path, arch: str) -> dict[str, str]:
         raise CorpusBuildError(
             f"VsDevCmd failed for {arch} with {completed.returncode}: {stderr.strip()}"
         )
-    environment = dict(os.environ)
+    environment = dict(inherited_environment)
     for line in stdout.splitlines():
         if "=" in line and not line.startswith("="):
             key, value = line.split("=", 1)

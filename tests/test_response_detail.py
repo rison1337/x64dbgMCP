@@ -285,6 +285,76 @@ class ResponseDetailTests(unittest.TestCase):
         self.assertTrue(public["ok"], public)
         self.assertEqual(public["data"]["nextCursor"], "0x401003")
 
+    def test_search_strings_consumes_partial_reference_pages_without_char_truncation(self):
+        rows = [
+            [
+                f"{0x401000 + index:08X}",
+                "lea eax,[string]",
+                f"{0x402000 + index:08X}",
+                f"needle-{index}",
+            ]
+            for index in range(300)
+        ]
+        calls = []
+
+        modules = {
+            "modules": [
+                {
+                    "name": "fixture.exe",
+                    "base": "0x400000",
+                    "entry": "0x401000",
+                    "size": "0x10000",
+                }
+            ]
+        }
+        def fake_get(endpoint, params=None, **_kwargs):
+            if endpoint == "ExecCommand":
+                params = params or {}
+                calls.append(dict(params))
+                offset = int(params["offset"])
+                page = rows[offset : offset + 102]
+                return {"success": True, "refView": {"rowCount": 300, "rows": page}}
+            if endpoint == "GetModuleList":
+                return modules
+            raise AssertionError(endpoint)
+
+        with mock.patch.object(self.mod, "safe_get", side_effect=fake_get):
+            result = self.mod.SearchStrings("needle", limit=500, detail="full")
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["totalScanned"], 300)
+        self.assertEqual(result["totalMatches"], 300)
+        self.assertTrue(result["completeScan"])
+        self.assertEqual([item["offset"] for item in calls], [0, 102, 204])
+        self.assertEqual(result["matches"][0]["reference"]["rva"], "0x1000")
+
+    def test_search_strings_scopes_named_module_to_its_entry(self):
+        calls = []
+        modules = {
+            "modules": [
+                {
+                    "name": "fixture.exe",
+                    "base": "0x400000",
+                    "entry": "0x401234",
+                    "size": "0x10000",
+                }
+            ]
+        }
+
+        def fake_get(endpoint, params=None, **_kwargs):
+            if endpoint == "ExecCommand":
+                calls.append(dict(params or {}))
+                return {"success": True, "refView": {"rowCount": 0, "rows": []}}
+            if endpoint == "GetModuleList":
+                return modules
+            raise AssertionError(endpoint)
+
+        with mock.patch.object(self.mod, "safe_get", side_effect=fake_get):
+            result = self.mod.SearchStrings("anything", module="fixture.exe")
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(calls[0]["cmd"], "strref 0x401234")
+
 
 if __name__ == "__main__":
     unittest.main()

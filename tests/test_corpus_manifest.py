@@ -58,6 +58,18 @@ class CorpusManifestTests(unittest.TestCase):
                 rendered = fixture["build"]["output"].format(arch=arch)
                 self.assertTrue((REPO_ROOT / rendered).resolve().is_relative_to(expected_root))
 
+    def test_cmd_environment_sanitizes_quoted_path_entries(self):
+        source = {
+            "Path": r'C:\Windows;C:\Program Files\usbipd-win";C:\Program Files (x86)\Arm Toolchain',
+            "KEEP": 'quoted "value"',
+        }
+        sanitized = self.mod._sanitized_command_environment(source)
+        self.assertEqual(
+            sanitized["Path"],
+            r"C:\Windows;C:\Program Files\usbipd-win;C:\Program Files (x86)\Arm Toolchain",
+        )
+        self.assertEqual(sanitized["KEEP"], source["KEEP"])
+
     def test_safety_profile_is_fail_closed(self):
         for fixture in self.manifest["fixtures"]:
             safety = fixture["safety"]

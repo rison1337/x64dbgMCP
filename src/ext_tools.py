@@ -842,10 +842,15 @@ def register(mcp, g: Dict[str, Any]) -> None:
         total = 0
         rows: List[List[Any]] = []
         while offset < max_rows:
+            requested = min(max(1, int(page_size)), max_rows - offset)
             batch = ExecCommand(
                 cmd=cmd,
                 offset=offset,
-                limit=min(max(1, int(page_size)), max_rows - offset),
+                limit=requested,
+                # This is an internal consumer that filters and paginates the
+                # final response itself.  ExecCommand's public character cap
+                # must not silently turn a partial reference page into EOF.
+                max_output_chars=0,
             )
             if not isinstance(batch, dict):
                 break
@@ -856,10 +861,17 @@ def register(mcp, g: Dict[str, Any]) -> None:
             if not isinstance(batch_rows, list) or not batch_rows:
                 break
             rows.extend([row for row in batch_rows if isinstance(row, list)])
-            offset += len(batch_rows)
-            if len(batch_rows) < page_size:
+            next_offset = batch.get("nextOffset")
+            try:
+                next_offset = int(next_offset)
+            except (TypeError, ValueError):
+                next_offset = offset + len(batch_rows)
+            if next_offset <= offset:
                 break
+            offset = next_offset
             if total and offset >= total:
+                break
+            if len(batch_rows) < requested and not batch.get("truncated") and not total:
                 break
         return total or len(rows), rows
 
@@ -1361,7 +1373,14 @@ def register(mcp, g: Dict[str, Any]) -> None:
             }
         cmd = "strref"
         if module:
-            target = _resolve_addr(module)
+            module_record = _resolve_module_by_name(module)
+            target = None
+            if module_record:
+                target = _normalize_hex(module_record.get("entry"))
+                if not target or target == "0x0":
+                    target = _normalize_hex(module_record.get("base"))
+            if not target:
+                target = _resolve_addr(module)
             if target:
                 cmd = f"strref {target}"
         total_scanned, rows = _iter_refview_rows(cmd=cmd, page_size=500, max_rows=10000)
@@ -1407,6 +1426,12 @@ def register(mcp, g: Dict[str, Any]) -> None:
 
         def _location(value: Any) -> Dict[str, Any]:
             address = _parse_int(value)
+            if address is None:
+                # Reference-view cells use x64dbg's bare hexadecimal format
+                # (for example 00007FF6982012B4), not Python's 0x prefix.
+                raw = str(value or "").strip()
+                if re.fullmatch(r"[0-9A-Fa-f]+", raw):
+                    address = int(raw, 16)
             if address is None:
                 return {}
             for item in modules:

@@ -1,8 +1,8 @@
 {
   "schema": "x64dbg-mcp-runtime-sections-v1",
   "source": "x64dbg_runtime.py",
-  "sourceLineCount": 42040,
-  "sourceSha256": "0EA5C2A3B165439161A7B28DC41C7AD76E1009478CED1C7656288F45A5753575",
+  "sourceLineCount": 42163,
+  "sourceSha256": "F801BA8A860BB592B771FFC0738CE105FAAA6F1E541CA2E214692F84067DF5E8",
   "sections": [
     {
       "name": "00_bootstrap_and_session.py",
@@ -21,42 +21,42 @@
     {
       "name": "20_debugger_workflows.py",
       "startLine": 14790,
-      "endLine": 23195,
-      "lineCount": 8406,
-      "sha256": "8B70ABEDE0B92CFED9F18B96AE68556AAF5B798E55A6D0C87C1FD64D96E2739F"
+      "endLine": 23296,
+      "lineCount": 8507,
+      "sha256": "6FB248C7708781A846F03AA77D7FF946EE8B23129BF624D758D331791BBD51EB"
     },
     {
       "name": "30_trace_heap_coverage.py",
-      "startLine": 23196,
-      "endLine": 29489,
+      "startLine": 23297,
+      "endLine": 29590,
       "lineCount": 6294,
       "sha256": "F538570B51CF767F769DE71001454A9CAACD57AB36E69765BF67EFF2E60976E2"
     },
     {
       "name": "40_unpack_and_dump.py",
-      "startLine": 29490,
-      "endLine": 34675,
+      "startLine": 29591,
+      "endLine": 34776,
       "lineCount": 5186,
       "sha256": "BE95BCAEE701AFCE5A010841FBBA248E1C5839FE5F6AB8A587E48F58134F259A"
     },
     {
       "name": "50_debugger_api_surface.py",
-      "startLine": 34676,
-      "endLine": 38848,
+      "startLine": 34777,
+      "endLine": 38949,
       "lineCount": 4173,
       "sha256": "6BA8D63D8136B989B675913DDC06291622043FE080C3921E3BC6107D033CAF03"
     },
     {
       "name": "60_evidence_and_managed.py",
-      "startLine": 38849,
-      "endLine": 41869,
-      "lineCount": 3021,
-      "sha256": "47C3A3B076F27FAE650247BAB9B4B510DE6D16AD6BC2DAA0023C2E31F5EAC390"
+      "startLine": 38950,
+      "endLine": 41992,
+      "lineCount": 3043,
+      "sha256": "68BABD81C44D983699BB6DD084DD51DA86FECDB6BF8BC7D2F22152678FB9B293"
     },
     {
       "name": "70_registration_and_cli.py",
-      "startLine": 41870,
-      "endLine": 42040,
+      "startLine": 41993,
+      "endLine": 42163,
       "lineCount": 171,
       "sha256": "A57567DC6E36CBFBD6773987304DF3C5C0BB106CFAC9A1D3C553537A6311DFF7"
     }

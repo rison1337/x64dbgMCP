@@ -72,6 +72,18 @@ def main(argv: list[str] | None = None) -> int:
             60,
         ),
         (
+            "managed-probe-build",
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "tools/build_managed_probe.ps1",
+            ],
+            600,
+        ),
+        (
             "coordinator-tests",
             [
                 python,
