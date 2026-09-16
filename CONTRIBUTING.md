@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ## Building the plugin
 
 ```powershell
-cmake -S . -B build
+cmake -S . -B build -G "Visual Studio 17 2022"
 cmake --build build --target all_plugins --config Release
 ```
 

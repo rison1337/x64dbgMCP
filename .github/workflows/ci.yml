@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Configure (fetch SDK)
-        run: cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -DX64DBG_DOWNLOAD_SDK=ON
       - name: Build dp32 + dp64
         run: cmake --build build --target all_plugins --config Release
       - name: Run native bridge-core tests (both arches)

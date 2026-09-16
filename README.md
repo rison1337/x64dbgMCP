@@ -189,7 +189,7 @@ Cursor, VS Code MCP, Windsurf and other stdio clients use the same
 ```powershell
 git clone https://github.com/rison1337/x64dbgMCP.git
 Set-Location x64dbgMCP
-cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
+cmake -S . -B build -G "Visual Studio 17 2022" -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
 $X64dbgRoot = (Resolve-Path -LiteralPath (Read-Host 'x64dbg installation folder')).Path
@@ -422,7 +422,7 @@ Cursor, VS Code MCP, Windsurf и другие stdio-клиенты исполь�
 ```powershell
 git clone https://github.com/rison1337/x64dbgMCP.git
 Set-Location x64dbgMCP
-cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
+cmake -S . -B build -G "Visual Studio 17 2022" -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
 $X64dbgRoot = (Resolve-Path -LiteralPath (Read-Host 'Папка установки x64dbg')).Path
