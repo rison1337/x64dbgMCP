@@ -392,7 +392,6 @@ _RUNTIME_STATE: Dict[str, Any] = {
     "windowCaptureSeq": 0,
     "lastDetailedBreakpoint": None,
     "lastScyllaHide": None,
-    "lastHideMain": None,
     # Authoritative identity reported by Bridge/Hello.  Mutations are never
     # allowed to rely on process-name heuristics when this identity is absent.
     "bridgeIdentity": None,
@@ -4533,299 +4532,64 @@ def _collect_module_names() -> List[str]:
 def _inject_scyllahide_for_pid(
     target_pid: int, arch: str, profile: str
 ) -> Dict[str, Any]:
+    from mcp_runtime.scylla import run_injector
+
     paths = _scyllahide_paths_for_arch(arch)
     hook_path = str(paths.get("hookPath") or "")
     injector_path = str(paths.get("injectorPath") or "")
     config_path = str(paths.get("configPath") or "")
-    plugin_path = str(paths.get("pluginPath") or "")
+    desired_profile = str(profile or "Basic")
+    missing = [path for path in (hook_path, injector_path, config_path)
+               if not path or not os.path.isfile(path)]
+    if missing:
+        return {"ok": False, "error": f"Missing ScyllaHide files: {missing}", "paths": paths}
     process_info = _get_process_info(int(target_pid))
     process_name = str(process_info.get("exe") or "").strip()
-    # The x64dbg GUI plugin is optional for injection (InjectorCLI does the work).
-    missing = [
-        path
-        for path in (hook_path, injector_path, config_path)
-        if not path or not os.path.exists(path)
-    ]
-    if missing:
-        return {
-            "ok": False,
-            "error": f"Missing ScyllaHide files: {missing}",
-            "paths": paths,
-        }
-    if not process_name:
-        return {
-            "ok": False,
-            "error": f"Could not resolve process name for pid {int(target_pid)}",
-            "paths": paths,
-        }
+    if int(target_pid) <= 0 or not process_name:
+        return {"ok": False, "error": "The requested target PID is not available.", "paths": paths}
     runtime_record = _get_runtime_value("lastScyllaHide")
-    if (
-        isinstance(runtime_record, dict)
+    if (isinstance(runtime_record, dict)
         and int(runtime_record.get("pid") or 0) == int(target_pid)
         and _process_exists(int(target_pid))
         and str(runtime_record.get("hookPath") or "").lower() == hook_path.lower()
-        and bool(runtime_record.get("ok"))
-    ):
-        return {
-            "ok": True,
-            "pid": int(target_pid),
-            "arch": arch,
-            "profile": str(profile or "Basic"),
-            "configPath": config_path,
-            "hookPath": hook_path,
-            "injectorPath": injector_path,
-            "returncode": None,
-            "stdout": "",
-            "stderr": "",
-            "elapsedMs": 0.0,
-            "modulePresent": True,
-            "moduleListPresent": False,
-            "stdoutSuccess": False,
-            "moduleNames": [],
-            "processName": process_name,
-            "scyllaLog": _read_scyllahide_log_status(paths),
-            "timedOut": False,
-            "alreadyInjected": True,
-            "skippedInjector": True,
-        }
-    dismiss_result = _dismiss_scyllahide_dialog(
-        expected_substrings=["already hooked", "ntopenfile is already hooked"],
-        timeout_ms=1200,
-        poll_ms=100,
-    )
-    dialog_message = str(dismiss_result.get("message") or "")
-    if dismiss_result.get("found") and (
-        dismiss_result.get("dismissed") or dismiss_result.get("matched")
-    ):
-        result = {
-            "ok": True,
-            "pid": int(target_pid),
-            "arch": arch,
-            "profile": str(profile or "Basic"),
-            "configPath": config_path,
-            "hookPath": hook_path,
-            "injectorPath": injector_path,
-            "returncode": None,
-            "stdout": "",
-            "stderr": "",
-            "elapsedMs": 0.0,
-            "modulePresent": False,
-            "moduleListPresent": False,
-            "stdoutSuccess": False,
-            "moduleNames": [],
-            "processName": process_name,
-            "scyllaLog": _read_scyllahide_log_status(paths),
-            "timedOut": False,
-            "dialogDetected": True,
-            "dialogMessage": dialog_message,
-            "alreadyHookedDialog": True,
-            "skippedInjector": True,
-            "dismissedDialog": dismiss_result,
-        }
-        _remember_runtime(
-            lastScyllaHide={
-                "pid": int(target_pid),
-                "arch": arch,
-                "profile": str(profile or "Basic"),
-                "hookPath": hook_path,
-                "ok": True,
-                "dialogAssumedInjected": True,
-                "timestamp": _now_iso(),
-            }
-        )
-        return result
-    original_info = _read_scyllahide_profile(config_path)
-    original_profile = str(original_info.get("currentProfile") or "Disabled")
-    desired_profile = str(profile or "Basic")
-    set_result = _write_scyllahide_profile(config_path, desired_profile)
-    log_bookmark = _read_scyllahide_log_status(paths)
-    command = [injector_path, process_name, hook_path]
-    started = time.time()
-    stdout_log = os.path.join(
-        LOG_DIR, f"scyllahide-inject-{int(target_pid)}-{arch}.stdout.log"
-    )
-    stderr_log = os.path.join(
-        LOG_DIR, f"scyllahide-inject-{int(target_pid)}-{arch}.stderr.log"
-    )
-
-    def _read_inject_logs() -> tuple[str, str]:
-        stdout_text = ""
-        stderr_text = ""
-        if os.path.exists(stdout_log):
-            stdout_text = Path(stdout_log).read_text(encoding="utf-8", errors="replace")
-        if os.path.exists(stderr_log):
-            stderr_text = Path(stderr_log).read_text(encoding="utf-8", errors="replace")
-        return stdout_text.strip(), stderr_text.strip()
-
-    def _finalize_timeout_result(
-        stdout_text: str = "", stderr_text: str = ""
-    ) -> Dict[str, Any]:
-        time.sleep(0.5)
-        module_names = _collect_module_names()
-        stdout_success = "hook injection successful" in str(stdout_text or "").lower()
-        log_status = _read_scyllahide_log_status(
-            paths,
-            since_mtime=float(log_bookmark.get("mtime") or 0.0),
-            since_size=int(log_bookmark.get("size") or 0),
-        )
-        injected = bool(
-            os.path.basename(hook_path).lower() in module_names
-            or stdout_success
-            or log_status.get("hasHookingLines")
-        )
-        dialog_info = _inspect_scyllahide_dialog()
-        dialog_message = str(dialog_info.get("message") or "")
-        already_hooked = "already hooked" in dialog_message.lower()
-        if dialog_info.get("found"):
-            button_hwnd = _parse_hwnd_value(dialog_info.get("buttonHwnd"))
-            if button_hwnd:
-                try:
-                    _click_control(button_hwnd)
-                except Exception:
-                    pass
-        if already_hooked:
-            injected = True
-        if injected:
-            _remember_runtime(
-                lastScyllaHide={
-                    "pid": int(target_pid),
-                    "arch": arch,
-                    "profile": desired_profile,
-                    "hookPath": hook_path,
-                    "ok": True,
-                    "stdoutSuccess": stdout_success,
-                    "dialogAssumedInjected": already_hooked,
-                    "timestamp": _now_iso(),
-                }
-            )
-        return {
-            "ok": injected,
-            "pid": int(target_pid),
-            "arch": arch,
-            "profile": desired_profile,
-            "configPath": config_path,
-            "hookPath": hook_path,
-            "injectorPath": injector_path,
-            "returncode": None,
-            "stdout": str(stdout_text or "").strip(),
-            "stderr": str(stderr_text or "").strip(),
-            "elapsedMs": round((time.time() - started) * 1000, 2),
-            "modulePresent": injected,
-            "moduleListPresent": bool(
-                os.path.basename(hook_path).lower() in module_names
-            ),
-            "stdoutSuccess": stdout_success,
-            "moduleNames": module_names[:64],
-            "processName": process_name,
-            "scyllaLog": log_status,
-            "setProfile": set_result,
-            "timedOut": True,
-            "dialogDetected": bool(dialog_info.get("found")),
-            "dialogMessage": dialog_message,
-            "alreadyHookedDialog": already_hooked,
-        }
+        and runtime_record.get("ok")):
+        if runtime_record.get("profile") != desired_profile:
+            return {"ok": False, "error": "Restart the target before changing an applied ScyllaHide profile."}
+        previous = runtime_record.get("injectResult")
+        if isinstance(previous, dict):
+            return {**previous, "alreadyInjected": True, "skippedInjector": True}
 
     try:
-        with (
-            open(stdout_log, "w", encoding="utf-8", errors="replace") as stdout_handle,
-            open(stderr_log, "w", encoding="utf-8", errors="replace") as stderr_handle,
-        ):
-            completed = subprocess.run(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=stdout_handle,
-                stderr=stderr_handle,
-                timeout=20,
-                check=False,
-            )
-        time.sleep(0.3)
-        module_names = _collect_module_names()
-        stdout_text, stderr_text = _read_inject_logs()
-        stdout_success = "hook injection successful" in stdout_text.lower()
-        log_status = _read_scyllahide_log_status(
-            paths,
-            since_mtime=float(log_bookmark.get("mtime") or 0.0),
-            since_size=int(log_bookmark.get("size") or 0),
+        result = run_injector(
+            injector=injector_path, hook=hook_path, config=config_path,
+            profile=desired_profile, pid=int(target_pid), work_dir=LOG_DIR,
         )
-        injected = bool(
-            os.path.basename(hook_path).lower() in module_names
-            or stdout_success
-            or log_status.get("hasHookingLines")
-        )
-        if injected:
-            _remember_runtime(
-                lastScyllaHide={
-                    "pid": int(target_pid),
-                    "arch": arch,
-                    "profile": desired_profile,
-                    "hookPath": hook_path,
-                    "ok": True,
-                    "stdoutSuccess": stdout_success,
-                    "processName": process_name,
-                    "logMtime": log_status.get("mtime"),
-                    "logSize": log_status.get("size"),
-                    "timestamp": _now_iso(),
-                }
-            )
-        result = {
-            "ok": bool(completed.returncode == 0 and injected),
-            "pid": int(target_pid),
-            "arch": arch,
-            "profile": desired_profile,
-            "configPath": config_path,
-            "hookPath": hook_path,
-            "injectorPath": injector_path,
-            "returncode": int(completed.returncode),
-            "stdout": stdout_text,
-            "stderr": stderr_text,
-            "elapsedMs": round((time.time() - started) * 1000, 2),
-            "modulePresent": injected,
-            "moduleListPresent": bool(
-                os.path.basename(hook_path).lower() in module_names
-            ),
-            "stdoutSuccess": stdout_success,
-            "moduleNames": module_names[:64],
-            "processName": process_name,
-            "scyllaLog": log_status,
-            "setProfile": set_result,
-        }
-        return result
-    except subprocess.TimeoutExpired as e:
-        stdout_text, stderr_text = _read_inject_logs()
-        return _finalize_timeout_result(
-            stdout_text=(
-                stdout_text
-                or (
-                    e.stdout.decode("utf-8", "replace")
-                    if isinstance(e.stdout, bytes)
-                    else str(e.stdout or "")
-                )
-            ),
-            stderr_text=(
-                stderr_text
-                or (
-                    e.stderr.decode("utf-8", "replace")
-                    if isinstance(e.stderr, bytes)
-                    else str(e.stderr or "")
-                )
-            ),
-        )
-    finally:
-        try:
-            _write_scyllahide_profile(
-                config_path,
-                original_profile or "Disabled",
-                allow_disabled=True,
-            )
-        except Exception as _restore_err:
-            # A silent failure here would leave the ScyllaHide profile in a dirty
-            # state for the next launch, so surface it to the log for diagnosis.
-            _log_event(
-                "scyllahide_profile_restore_failed",
-                configPath=str(config_path),
-                profile=str(original_profile or "Disabled"),
-                error=str(_restore_err),
-            )
+    except (OSError, ValueError, configparser.Error) as exc:
+        return {"ok": False, "pid": int(target_pid), "profile": desired_profile, "error": str(exc)}
+    module_names = _collect_module_names()
+    module_list_present = os.path.basename(hook_path).lower() in module_names
+    native_log = str(result.pop("nativeLog", ""))
+    log_status = {
+        "source": "isolated_injector", "pid": int(target_pid),
+        "fresh": bool(native_log), "recent": bool(native_log),
+        "hasHookingLines": "hooking " in native_log.lower(),
+        "tail": native_log[-16000:],
+    }
+    result.update({
+        "arch": arch, "configPath": config_path, "hookPath": hook_path,
+        "injectorPath": injector_path, "modulePresent": bool(result.get("hookInjected")),
+        "moduleListPresent": module_list_present, "moduleNames": module_names[:64],
+        "processName": process_name, "scyllaLog": log_status,
+    })
+    if result.get("ok"):
+        _remember_runtime(lastScyllaHide={
+            "pid": int(target_pid), "arch": arch, "profile": desired_profile,
+            "hookPath": hook_path, "ok": True, "hookInjected": result.get("hookInjected"),
+            "protectionApplied": True, "processName": process_name,
+            "scyllaLog": log_status, "injectResult": dict(result), "timestamp": _now_iso(),
+        })
+    return result
+
 
 
 def _resolve_target_exe_path(exe_path: str = "") -> str:

@@ -1,7 +1,7 @@
 {
   "ok": true,
   "schemaVersion": 2,
-  "count": 296,
+  "count": 290,
   "tools": [
     "AcquireBreakpointLease",
     "AcquireMutationLease",
@@ -50,7 +50,6 @@
     "CommentSet",
     "CompareMemorySnapshots",
     "CompareWindowCaptures",
-    "ConfigureHideMainPlugin",
     "ContinueException",
     "DebugDeleteBreakpoint",
     "DebugPause",
@@ -77,7 +76,6 @@
     "DumpOnEvent",
     "DumpPeFromMemory",
     "EnsureDebugger",
-    "EnsureHideMainForDebuggee",
     "EnsureReady",
     "EnsureScyllaHideForDebuggee",
     "EnumHandles",
@@ -122,7 +120,6 @@
     "GetFunctionArgs",
     "GetFunctionInfo",
     "GetHeapState",
-    "GetHideMainStatus",
     "GetImports",
     "GetInputHistory",
     "GetInteractionHistory",
@@ -150,7 +147,6 @@
     "GetTraceRecord",
     "GetWindowCapture",
     "GetWindowCaptureHistory",
-    "HideDebuggeeWithHideMain",
     "ImportAnalysisEvidence",
     "ImportStaticAnnotations",
     "InitDebuggee",
@@ -173,7 +169,6 @@
     "ListStateSnapshots",
     "LoadLibraryInDebuggee",
     "LoadSymbolsForModule",
-    "ManageHideMainDriver",
     "MemoryBase",
     "MemoryGetProtect",
     "MemoryIsValidPtr",
@@ -272,7 +267,6 @@
     "TraceInstructionTape",
     "TraceIntoConditional",
     "TraceOverConditional",
-    "UnhideDebuggeeWithHideMain",
     "ValidateAnalysisEvidence",
     "ValidateDump",
     "ValidateIAT",
@@ -618,15 +612,9 @@
     ],
     "anti-debug": [
       "AnalyzeAntiDebugSurface",
-      "ConfigureHideMainPlugin",
-      "EnsureHideMainForDebuggee",
       "EnsureScyllaHideForDebuggee",
-      "GetHideMainStatus",
       "GetScyllaHideStatus",
-      "HideDebuggeeWithHideMain",
-      "ManageHideMainDriver",
-      "SetScyllaHideProfile",
-      "UnhideDebuggeeWithHideMain"
+      "SetScyllaHideProfile"
     ],
     "raw": [
       "ExecCommand"
@@ -683,7 +671,6 @@
     "CommentSet",
     "CompareMemorySnapshots",
     "CompareWindowCaptures",
-    "ConfigureHideMainPlugin",
     "ContinueException",
     "DebugDeleteBreakpoint",
     "DebugPause",
@@ -710,7 +697,6 @@
     "DumpOnEvent",
     "DumpPeFromMemory",
     "EnsureDebugger",
-    "EnsureHideMainForDebuggee",
     "EnsureReady",
     "EnsureScyllaHideForDebuggee",
     "EnumHandles",
@@ -755,7 +741,6 @@
     "GetFunctionArgs",
     "GetFunctionInfo",
     "GetHeapState",
-    "GetHideMainStatus",
     "GetImports",
     "GetInputHistory",
     "GetInteractionHistory",
@@ -783,7 +768,6 @@
     "GetTraceRecord",
     "GetWindowCapture",
     "GetWindowCaptureHistory",
-    "HideDebuggeeWithHideMain",
     "ImportAnalysisEvidence",
     "ImportStaticAnnotations",
     "InitDebuggee",
@@ -806,7 +790,6 @@
     "ListStateSnapshots",
     "LoadLibraryInDebuggee",
     "LoadSymbolsForModule",
-    "ManageHideMainDriver",
     "MemoryBase",
     "MemoryGetProtect",
     "MemoryIsValidPtr",
@@ -905,7 +888,6 @@
     "TraceInstructionTape",
     "TraceIntoConditional",
     "TraceOverConditional",
-    "UnhideDebuggeeWithHideMain",
     "ValidateAnalysisEvidence",
     "ValidateDump",
     "ValidateIAT",
@@ -982,7 +964,7 @@
     },
     "inspect": {
       "description": "Read-only inspection and validation tools.",
-      "count": 138,
+      "count": 137,
       "tools": [
         "AnalyzeAntiDebugSurface",
         "AnalyzeDebuggeeGui",
@@ -1034,7 +1016,6 @@
         "GetFunctionArgs",
         "GetFunctionInfo",
         "GetHeapState",
-        "GetHideMainStatus",
         "GetImports",
         "GetInputHistory",
         "GetInteractionHistory",
@@ -1126,7 +1107,7 @@
     },
     "standard": {
       "description": "Recommended dynamic reverse-engineering surface without global input, injection, kernel or raw-command tools.",
-      "count": 258,
+      "count": 257,
       "tools": [
         "AcquireBreakpointLease",
         "AcquireMutationLease",
@@ -1233,7 +1214,6 @@
         "GetFunctionArgs",
         "GetFunctionInfo",
         "GetHeapState",
-        "GetHideMainStatus",
         "GetImports",
         "GetInputHistory",
         "GetInteractionHistory",
@@ -1390,7 +1370,7 @@
     },
     "automation": {
       "description": "Standard tools plus debuggee-scoped GUI and console automation.",
-      "count": 275,
+      "count": 274,
       "tools": [
         "AcquireBreakpointLease",
         "AcquireMutationLease",
@@ -1505,7 +1485,6 @@
         "GetFunctionArgs",
         "GetFunctionInfo",
         "GetHeapState",
-        "GetHideMainStatus",
         "GetImports",
         "GetInputHistory",
         "GetInteractionHistory",
@@ -1671,7 +1650,7 @@
     },
     "full": {
       "description": "All registered tools; backward-compatible discovery surface.",
-      "count": 296,
+      "count": 290,
       "tools": [
         "AcquireBreakpointLease",
         "AcquireMutationLease",
@@ -1720,7 +1699,6 @@
         "CommentSet",
         "CompareMemorySnapshots",
         "CompareWindowCaptures",
-        "ConfigureHideMainPlugin",
         "ContinueException",
         "DebugDeleteBreakpoint",
         "DebugPause",
@@ -1747,7 +1725,6 @@
         "DumpOnEvent",
         "DumpPeFromMemory",
         "EnsureDebugger",
-        "EnsureHideMainForDebuggee",
         "EnsureReady",
         "EnsureScyllaHideForDebuggee",
         "EnumHandles",
@@ -1792,7 +1769,6 @@
         "GetFunctionArgs",
         "GetFunctionInfo",
         "GetHeapState",
-        "GetHideMainStatus",
         "GetImports",
         "GetInputHistory",
         "GetInteractionHistory",
@@ -1820,7 +1796,6 @@
         "GetTraceRecord",
         "GetWindowCapture",
         "GetWindowCaptureHistory",
-        "HideDebuggeeWithHideMain",
         "ImportAnalysisEvidence",
         "ImportStaticAnnotations",
         "InitDebuggee",
@@ -1843,7 +1818,6 @@
         "ListStateSnapshots",
         "LoadLibraryInDebuggee",
         "LoadSymbolsForModule",
-        "ManageHideMainDriver",
         "MemoryBase",
         "MemoryGetProtect",
         "MemoryIsValidPtr",
@@ -1942,7 +1916,6 @@
         "TraceInstructionTape",
         "TraceIntoConditional",
         "TraceOverConditional",
-        "UnhideDebuggeeWithHideMain",
         "ValidateAnalysisEvidence",
         "ValidateDump",
         "ValidateIAT",
@@ -2363,10 +2336,7 @@
       },
       "category": "process",
       "tags": [
-        "conditional-effects",
-        "core",
-        "elevation-sensitive",
-        "kernel"
+        "core"
       ],
       "profiles": [
         "compact",
@@ -2382,27 +2352,9 @@
       ],
       "sideEffects": [
         "host.configuration.write",
-        "host.process.control",
-        "kernel.driver.control"
+        "host.process.control"
       ],
-      "conditionalSideEffects": [
-        {
-          "kind": "kernel.driver.control",
-          "when": {
-            "parameter": "use_hidemain",
-            "operator": "not_equals",
-            "value": "off"
-          }
-        },
-        {
-          "kind": "host.configuration.write",
-          "when": {
-            "parameter": "hidemain_allow_system_changes",
-            "operator": "equals",
-            "value": true
-          }
-        }
-      ],
+      "conditionalSideEffects": [],
       "requires": [
         "bridge"
       ],
@@ -3697,57 +3649,6 @@
         "openWorldHint": true
       }
     },
-    "ConfigureHideMainPlugin": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "conditional-effects",
-        "expert",
-        "filesystem-write"
-      ],
-      "profiles": [
-        "full"
-      ],
-      "risk": "privileged",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [
-        "host.configuration.write",
-        "host.filesystem.write"
-      ],
-      "conditionalSideEffects": [
-        {
-          "kind": "host.configuration.write",
-          "when": {
-            "parameter": "action",
-            "operator": "not_equals",
-            "value": "status"
-          }
-        },
-        {
-          "kind": "host.filesystem.write",
-          "when": {
-            "parameter": "action",
-            "operator": "not_equals",
-            "value": "status"
-          }
-        }
-      ],
-      "requires": [],
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": true
-      }
-    },
     "ContinueException": {
       "resultContract": "envelope-v1",
       "legacyResultShim": {
@@ -4690,43 +4591,6 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      }
-    },
-    "EnsureHideMainForDebuggee": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "elevation-sensitive",
-        "expert",
-        "kernel"
-      ],
-      "profiles": [
-        "full"
-      ],
-      "risk": "privileged",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [
-        "host.configuration.write",
-        "kernel.driver.control"
-      ],
-      "conditionalSideEffects": [],
-      "requires": [
-        "bridge",
-        "debug-session"
-      ],
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
       }
@@ -6345,38 +6209,6 @@
         "openWorldHint": true
       }
     },
-    "GetHideMainStatus": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "core"
-      ],
-      "profiles": [
-        "inspect",
-        "standard",
-        "automation",
-        "full"
-      ],
-      "risk": "read",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [],
-      "conditionalSideEffects": [],
-      "requires": [],
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      }
-    },
     "GetImports": {
       "resultContract": "envelope-v1",
       "legacyResultShim": {
@@ -7313,42 +7145,6 @@
         "openWorldHint": true
       }
     },
-    "HideDebuggeeWithHideMain": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "elevation-sensitive",
-        "expert",
-        "kernel"
-      ],
-      "profiles": [
-        "full"
-      ],
-      "risk": "privileged",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [
-        "kernel.driver.control"
-      ],
-      "conditionalSideEffects": [],
-      "requires": [
-        "bridge",
-        "debug-session"
-      ],
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": true
-      }
-    },
     "ImportAnalysisEvidence": {
       "resultContract": "envelope-v1",
       "legacyResultShim": {
@@ -7837,9 +7633,7 @@
       "category": "process",
       "tags": [
         "conditional-effects",
-        "core",
-        "elevation-sensitive",
-        "kernel"
+        "core"
       ],
       "profiles": [
         "standard",
@@ -7855,8 +7649,7 @@
       "sideEffects": [
         "debuggee.module.inject",
         "host.configuration.write",
-        "host.process.control",
-        "kernel.driver.control"
+        "host.process.control"
       ],
       "conditionalSideEffects": [
         {
@@ -7865,22 +7658,6 @@
             "parameter": "use_scyllahide",
             "operator": "not_equals",
             "value": "off"
-          }
-        },
-        {
-          "kind": "kernel.driver.control",
-          "when": {
-            "parameter": "use_hidemain",
-            "operator": "not_equals",
-            "value": "off"
-          }
-        },
-        {
-          "kind": "host.configuration.write",
-          "when": {
-            "parameter": "hidemain_allow_system_changes",
-            "operator": "equals",
-            "value": true
           }
         }
       ],
@@ -7903,9 +7680,7 @@
       "category": "process",
       "tags": [
         "conditional-effects",
-        "core",
-        "elevation-sensitive",
-        "kernel"
+        "core"
       ],
       "profiles": [
         "standard",
@@ -7921,8 +7696,7 @@
       "sideEffects": [
         "debuggee.module.inject",
         "host.configuration.write",
-        "host.process.control",
-        "kernel.driver.control"
+        "host.process.control"
       ],
       "conditionalSideEffects": [
         {
@@ -7931,22 +7705,6 @@
             "parameter": "use_scyllahide",
             "operator": "not_equals",
             "value": "off"
-          }
-        },
-        {
-          "kind": "kernel.driver.control",
-          "when": {
-            "parameter": "use_hidemain",
-            "operator": "not_equals",
-            "value": "off"
-          }
-        },
-        {
-          "kind": "host.configuration.write",
-          "when": {
-            "parameter": "hidemain_allow_system_changes",
-            "operator": "equals",
-            "value": true
           }
         }
       ],
@@ -8201,60 +7959,6 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      }
-    },
-    "ManageHideMainDriver": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "conditional-effects",
-        "elevation-sensitive",
-        "expert",
-        "kernel"
-      ],
-      "profiles": [
-        "full"
-      ],
-      "risk": "privileged",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [
-        "host.configuration.write",
-        "kernel.driver.control"
-      ],
-      "conditionalSideEffects": [
-        {
-          "kind": "kernel.driver.control",
-          "when": {
-            "parameter": "action",
-            "operator": "not_equals",
-            "value": "status"
-          }
-        },
-        {
-          "kind": "host.configuration.write",
-          "when": {
-            "parameter": "action",
-            "operator": "not_equals",
-            "value": "status"
-          }
-        }
-      ],
-      "requires": [
-        "elevation"
-      ],
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
         "idempotentHint": false,
         "openWorldHint": true
       }
@@ -11774,42 +11478,6 @@
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": false,
-        "openWorldHint": true
-      }
-    },
-    "UnhideDebuggeeWithHideMain": {
-      "resultContract": "envelope-v1",
-      "legacyResultShim": {
-        "environmentVariable": "X64DBG_MCP_LEGACY_RESULTS",
-        "sunset": "2026-12-31"
-      },
-      "category": "anti-debug",
-      "tags": [
-        "elevation-sensitive",
-        "expert",
-        "kernel"
-      ],
-      "profiles": [
-        "full"
-      ],
-      "risk": "privileged",
-      "touches": [
-        "debuggee",
-        "filesystem",
-        "kernel"
-      ],
-      "sideEffects": [
-        "kernel.driver.control"
-      ],
-      "conditionalSideEffects": [],
-      "requires": [
-        "bridge",
-        "debug-session"
-      ],
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
         "openWorldHint": true
       }
     },

@@ -236,10 +236,8 @@ CATEGORY_TOOLS: Mapping[str, frozenset[str]] = {
     ),
     "anti-debug": _names(
         """
-        AnalyzeAntiDebugSurface ConfigureHideMainPlugin EnsureHideMainForDebuggee
-        EnsureScyllaHideForDebuggee GetHideMainStatus GetScyllaHideStatus
-        HideDebuggeeWithHideMain ManageHideMainDriver SetScyllaHideProfile
-        UnhideDebuggeeWithHideMain
+        AnalyzeAntiDebugSurface EnsureScyllaHideForDebuggee
+        GetScyllaHideStatus SetScyllaHideProfile
         """
     ),
     "raw": _names("ExecCommand"),
@@ -340,7 +338,7 @@ def _effect_map() -> dict[str, frozenset[str]]:
         ),
         "host.filesystem.write": _names(
             """
-            CaptureDebuggeeWindow ConfigureHideMainPlugin DumpLoadedModule DumpModule
+            CaptureDebuggeeWindow DumpLoadedModule DumpModule
             DumpModuleRaw DumpOnEvent DumpPeFromMemory ExportAnalysisEvidence ExportCapabilityMap ExportPatchedFile
             ExportRuntimeEvidence ExportManagedEvidence ExportManagedRuntimeEvidence
             ExportManagedAssemblyMetadata
@@ -351,16 +349,8 @@ def _effect_map() -> dict[str, frozenset[str]]:
         ),
         "host.configuration.write": _names(
             """
-            AttachToProcess ConfigureHideMainPlugin EnsureHideMainForDebuggee
-            LaunchAndOpenDebuggee LaunchFileUnderDebugger ManageHideMainDriver
+            AttachToProcess LaunchAndOpenDebuggee LaunchFileUnderDebugger
             SetScyllaHideProfile
-            """
-        ),
-        "kernel.driver.control": _names(
-            """
-            AttachToProcess EnsureHideMainForDebuggee HideDebuggeeWithHideMain
-            LaunchAndOpenDebuggee LaunchFileUnderDebugger ManageHideMainDriver
-            UnhideDebuggeeWithHideMain
             """
         ),
         "unbounded.command": _names("ExecCommand"),
@@ -417,20 +407,6 @@ CONDITIONAL_EFFECTS: Mapping[str, tuple[Mapping[str, Any], ...]] = {
             "when": {"parameter": "apply", "operator": "equals", "value": True},
         },
     ),
-    "AttachToProcess": (
-        {
-            "kind": "kernel.driver.control",
-            "when": {"parameter": "use_hidemain", "operator": "not_equals", "value": "off"},
-        },
-        {
-            "kind": "host.configuration.write",
-            "when": {
-                "parameter": "hidemain_allow_system_changes",
-                "operator": "equals",
-                "value": True,
-            },
-        },
-    ),
     "CaptureDebuggeeWindow": (
         {
             "kind": "host.filesystem.write",
@@ -447,16 +423,6 @@ CONDITIONAL_EFFECTS: Mapping[str, tuple[Mapping[str, Any], ...]] = {
         {
             "kind": "host.filesystem.write",
             "when": {"parameter": "evidence_path", "operator": "nonempty"},
-        },
-    ),
-    "ConfigureHideMainPlugin": (
-        {
-            "kind": "host.configuration.write",
-            "when": {"parameter": "action", "operator": "not_equals", "value": "status"},
-        },
-        {
-            "kind": "host.filesystem.write",
-            "when": {"parameter": "action", "operator": "not_equals", "value": "status"},
         },
     ),
     "ExportAnalysisEvidence": (
@@ -494,45 +460,11 @@ CONDITIONAL_EFFECTS: Mapping[str, tuple[Mapping[str, Any], ...]] = {
             "kind": "debuggee.module.inject",
             "when": {"parameter": "use_scyllahide", "operator": "not_equals", "value": "off"},
         },
-        {
-            "kind": "kernel.driver.control",
-            "when": {"parameter": "use_hidemain", "operator": "not_equals", "value": "off"},
-        },
-        {
-            "kind": "host.configuration.write",
-            "when": {
-                "parameter": "hidemain_allow_system_changes",
-                "operator": "equals",
-                "value": True,
-            },
-        },
     ),
     "LaunchFileUnderDebugger": (
         {
             "kind": "debuggee.module.inject",
             "when": {"parameter": "use_scyllahide", "operator": "not_equals", "value": "off"},
-        },
-        {
-            "kind": "kernel.driver.control",
-            "when": {"parameter": "use_hidemain", "operator": "not_equals", "value": "off"},
-        },
-        {
-            "kind": "host.configuration.write",
-            "when": {
-                "parameter": "hidemain_allow_system_changes",
-                "operator": "equals",
-                "value": True,
-            },
-        },
-    ),
-    "ManageHideMainDriver": (
-        {
-            "kind": "kernel.driver.control",
-            "when": {"parameter": "action", "operator": "not_equals", "value": "status"},
-        },
-        {
-            "kind": "host.configuration.write",
-            "when": {"parameter": "action", "operator": "not_equals", "value": "status"},
         },
     ),
     "TraceIntoConditional": (
@@ -570,11 +502,10 @@ GLOBAL_INPUT_TOOLS = EFFECT_TOOLS["host.user-input"]
 
 EXPERT_ONLY_TOOLS = _names(
     """
-    AssemblerAssembleMem ConfigureHideMainPlugin EnsureHideMainForDebuggee
-    EnsureScyllaHideForDebuggee ExecCommand HideDebuggeeWithHideMain
-    LoadLibraryInDebuggee ManageHideMainDriver MemoryRemoteAlloc MemoryRemoteFree
+    AssemblerAssembleMem EnsureScyllaHideForDebuggee ExecCommand
+    LoadLibraryInDebuggee MemoryRemoteAlloc MemoryRemoteFree
     RemoveProcessDebug RestartDebugger SetPageRights SetScyllaHideProfile StackPop
-    StackPush UnhideDebuggeeWithHideMain
+    StackPush
     """
 )
 
@@ -599,7 +530,7 @@ IDEMPOTENT_MUTATIONS = _names(
     SetControlText SetExceptionFilter SetHardwareBreakpoint SetManagedMethodBreakpoint
     SetMemoryRangeBreakpoint
     SetPageRights SetScyllaHideProfile SetThreadPriority SetUiAutomationValue StopApiTrace
-    StopNativeTrace StopRunTrace StopTraceRecord SwitchThread UnhideDebuggeeWithHideMain
+    StopNativeTrace StopRunTrace StopTraceRecord SwitchThread
     """
 )
 
@@ -617,25 +548,25 @@ DESTRUCTIVE_NAMES = _names(
 OFFLINE_OR_SESSION_OPTIONAL = _names(
     """
     AnalyzeAntiDebugSurface AnalyzeExecutablePacking AttachToProcess BridgeHello
-    CloseLaunchResources CloseLaunchStdin ConfigureHideMainPlugin EnsureDebugger
+    CloseLaunchResources CloseLaunchStdin EnsureDebugger
     EnsureReady ExportCapabilityMap GetLaunchState ReadLaunchStream WriteLaunchStdin
-    GetDebuggerPluginStatus GetHideMainStatus GetMiniDumpProfiles GetRecentLog
+    GetDebuggerPluginStatus GetMiniDumpProfiles GetRecentLog
     GetScyllaHideStatus InitDebuggee LaunchAndOpenDebuggee LaunchFileUnderDebugger
-    ManageHideMainDriver RunBridgeSelfCheck SetScyllaHideProfile
+    RunBridgeSelfCheck SetScyllaHideProfile
     ValidateAnalysisEvidence VerifyMiniDump VerifyPEDump
     """
 )
 
 NO_BRIDGE_REQUIRED = _names(
     """
-    AnalyzeAntiDebugSurface AnalyzeExecutablePacking ConfigureHideMainPlugin
-    EnsureDebugger ExportCapabilityMap GetDebuggerPluginStatus GetHideMainStatus
-    GetMiniDumpProfiles GetScyllaHideStatus ManageHideMainDriver RunBridgeSelfCheck
+    AnalyzeAntiDebugSurface AnalyzeExecutablePacking
+    EnsureDebugger ExportCapabilityMap GetDebuggerPluginStatus
+    GetMiniDumpProfiles GetScyllaHideStatus RunBridgeSelfCheck
     SetScyllaHideProfile ValidateAnalysisEvidence VerifyMiniDump VerifyPEDump
     """
 )
 
-ELEVATION_REQUIRED = _names("ManageHideMainDriver")
+ELEVATION_REQUIRED = _names("")
 
 
 CATEGORY_TOUCHES: Mapping[str, frozenset[str]] = {

@@ -186,6 +186,33 @@ class ScyllaHideProfileTests(unittest.TestCase):
         self.assertEqual(result["profile"], "Basic")
         write_profile.assert_called_once_with(status["configPath"], "Basic")
 
+    def test_auto_mode_never_injects_into_an_arbitrary_target(self):
+        status = {
+            "installed": True,
+            "currentProfile": "Basic",
+            "configPath": r"C:\x64dbg\x64\plugins\scylla_hide.ini",
+            "analysis": {"suggestedScyllaHideProfile": "Basic"},
+        }
+        with mock.patch.object(
+            self.mod, "_dismiss_scyllahide_dialog", return_value={"found": False}
+        ), mock.patch.object(
+            self.mod, "GetScyllaHideStatus", return_value=status
+        ), mock.patch.object(
+            self.mod,
+            "_write_scyllahide_profile",
+            return_value={"ok": True, "currentProfile": "Disabled"},
+        ) as write_profile:
+            result = self.mod._prepare_scyllahide_launch(
+                r"C:\targets\sample.exe", "x64", "auto", ""
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["skipped"])
+        self.assertTrue(result["preArmed"])
+        write_profile.assert_called_once_with(
+            status["configPath"], "Disabled", allow_disabled=True
+        )
+
     def test_force_mode_rejects_explicit_disabled_profile(self):
         status = {
             "installed": True,
@@ -207,6 +234,24 @@ class ScyllaHideProfileTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("cannot use a disabled profile", result["reason"])
         write_profile.assert_not_called()
+
+    def test_gui_plugin_is_disabled_before_isolated_cli_injection(self):
+        status = {
+            "installed": True, "guiPluginPresent": True,
+            "currentProfile": "Basic", "configPath": "config.ini",
+            "analysis": {}, "arch": "x64",
+        }
+        with mock.patch.object(self.mod, "_dismiss_scyllahide_dialog", return_value={}), \
+             mock.patch.object(self.mod, "GetScyllaHideStatus", return_value=status), \
+             mock.patch.object(self.mod, "_read_scyllahide_profile", return_value={"profiles": ["Basic", "Disabled"]}), \
+             mock.patch.object(self.mod, "_write_scyllahide_profile", return_value={"ok": True}) as write_profile, \
+             mock.patch.object(self.mod, "_read_scyllahide_log_status", return_value={}), \
+             mock.patch.object(self.mod, "_remember_runtime"):
+            result = self.mod._prepare_scyllahide_launch("sample.exe", "x64", "force", "Basic")
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["isolatedInjector"])
+        self.assertEqual(result["profile"], "Basic")
+        write_profile.assert_called_once_with("config.ini", "Disabled", allow_disabled=True)
 
 
 if __name__ == "__main__":

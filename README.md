@@ -137,6 +137,14 @@ Optional installation check: start x64dbg or x32dbg and verify the bridge:
 InjectorCLI/HookLibrary backend. `guiPluginPresent` describes only the optional
 x64dbg GUI plugin; it is not required for MCP injection.
 
+ScyllaHide is opt-in: launch tools default to `use_scyllahide="off"`, and
+`auto` also skips injection. Use `force` with an explicit profile when needed.
+The CLI backend stages a private INI beside the injector and targets the exact
+PID. Its compatibility configuration disables `NtContinueHook` and
+`KillAntiAttach` together to avoid the reproduced continuation crash; the
+result reports these overrides. This does not guarantee that every third-party
+profile is compatible with every target or Windows build.
+
 #### Claude Code
 
 Add the same stdio server to Claude Code with the user scope. This command uses
@@ -370,6 +378,13 @@ bridge:
 Поля `GetScyllaHideStatus.installed` и `integrationReady` относятся к backend
 на базе InjectorCLI, HookLibrary и profile INI. `guiPluginPresent` сообщает
 только о необязательном GUI-плагине x64dbg; для MCP-инъекции он не требуется.
+
+ScyllaHide включается явно: launch-инструменты используют `use_scyllahide="off"`
+по умолчанию, а `auto` также пропускает инъекцию. При необходимости используйте
+`force` с выбранным профилем. CLI backend создаёт отдельный INI рядом с injector
+и передаёт точный PID. Для устранения воспроизведённого падения при продолжении
+он отключает `NtContinueHook` вместе с `KillAntiAttach` и сообщает эти изменения
+в результате. Совместимость остальных настроек профиля зависит от цели и Windows.
 
 #### Claude Code
 

@@ -31,53 +31,8 @@ def _load_ext_tools() -> None:
 _load_ext_tools()
 
 
-_HIDEMAIN_TOOLS_STATUS: Dict[str, Any] = {"loaded": False, "error": None}
-
-
-def _load_hidemain_tools() -> None:
-    try:
-        import importlib.util as _iu
-
-        _module_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "hidemain_tools.py"
-        )
-        if not os.path.exists(_module_path):
-            _HIDEMAIN_TOOLS_STATUS.update(
-                loaded=False,
-                error="hidemain_tools.py not found next to x64dbg.py",
-            )
-            return
-        spec = _iu.spec_from_file_location("x64dbg_hidemain_tools", _module_path)
-        if spec is None or spec.loader is None:
-            _HIDEMAIN_TOOLS_STATUS.update(
-                loaded=False,
-                error="Failed to build import spec for hidemain_tools.py",
-            )
-            return
-        mod = _iu.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        register = getattr(mod, "register", None)
-        if callable(register):
-            register(mcp, globals())
-            _HIDEMAIN_TOOLS_STATUS.update(loaded=True, error=None)
-        else:
-            _HIDEMAIN_TOOLS_STATUS.update(
-                loaded=False,
-                error="hidemain_tools.py exposes no register() function",
-            )
-    except Exception as _hidemain_err:  # pragma: no cover - best-effort
-        _HIDEMAIN_TOOLS_STATUS.update(loaded=False, error=str(_hidemain_err))
-        try:
-            print(f"[hidemain_tools] load failed: {_hidemain_err}", file=sys.stderr)
-        except Exception:
-            pass
-
-
-_load_hidemain_tools()
-
-
 # Install the result contract only after every optional module has registered its
-# tools, so ext_tools and HideMain routes receive exactly the same envelope as
+# tools, so extension routes receive exactly the same envelope as
 # core routes. Direct Python calls remain available as the compatibility shim.
 _install_public_result_envelopes()
 

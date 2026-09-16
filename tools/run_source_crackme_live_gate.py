@@ -153,7 +153,6 @@ def _recover_one(
         timeout_ms=30000,
         stop_first=True,
         use_scyllahide="off",
-        use_hidemain="off",
         advance_to_entry=True,
     )
     if not isinstance(launch, dict) or not launch.get("ok"):

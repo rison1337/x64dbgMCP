@@ -446,20 +446,6 @@ class SessionWorkflowTests(unittest.TestCase):
         self.assertGreaterEqual(calls[0]["timeout_ms"], 4300)
         self.assertLessEqual(calls[0]["timeout_ms"], 4321)
 
-    def test_init_debuggee_rejects_invalid_hidemain_mode_before_launch(self):
-        original_exec = self.mod.ExecCommand
-        calls = []
-        try:
-            self.mod.ExecCommand = lambda command: calls.append(command)
-            result = self.mod.InitDebuggee(
-                exe_path=r"C:\targets\sample.exe",
-                use_hidemain="froce",
-            )
-        finally:
-            self.mod.ExecCommand = original_exec
-        self.assertFalse(result["ok"])
-        self.assertIn("Unknown HideMain mode", result["error"])
-        self.assertEqual(calls, [])
 
     def test_direct_init_readiness_refreshes_bridge_even_with_cached_capabilities(self):
         stale_identity = {
@@ -540,11 +526,6 @@ class SessionWorkflowTests(unittest.TestCase):
             stop_first=False,
             use_scyllahide="force",
             scyllahide_profile="Basic",
-            use_hidemain="force",
-            hidemain_root=r"C:\tools\hidemain",
-            hidemain_allow_system_changes=True,
-            hidemain_allow_unsigned_driver=True,
-            hidemain_acknowledge_kernel_risk=True,
         )
 
         self.assertEqual(
@@ -559,11 +540,6 @@ class SessionWorkflowTests(unittest.TestCase):
                     "stop_first": False,
                     "use_scyllahide": "force",
                     "scyllahide_profile": "Basic",
-                    "use_hidemain": "force",
-                    "hidemain_root": r"C:\tools\hidemain",
-                    "hidemain_allow_system_changes": True,
-                    "hidemain_allow_unsigned_driver": True,
-                    "hidemain_acknowledge_kernel_risk": True,
                     "advance_to_entry": True,
                 }
             ],

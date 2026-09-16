@@ -1500,17 +1500,10 @@ def DebugStop() -> str:
     Returns:
         Status message
     """
-    hidemain_cleanup = None
-    cleanup_hidemain = globals().get("_cleanup_hidemain_target")
-    if callable(cleanup_hidemain):
-        try:
-            hidemain_cleanup = cleanup_hidemain()
-        except Exception as exc:
-            hidemain_cleanup = {"ok": False, "error": str(exc)}
     result = safe_get("Debug/Stop")
     _wait_for_debugger_idle(timeout_ms=2500, poll_ms=125)
     _restore_pending_scyllahide_profile(force=False)
-    _log_event("debug_stop", result=result, hideMainCleanup=hidemain_cleanup)
+    _log_event("debug_stop", result=result, )
     return result
 
 

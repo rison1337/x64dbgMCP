@@ -58,10 +58,10 @@ class ToolProfileCatalogTests(unittest.TestCase):
             },
             {
                 "compact": 40,
-                "inspect": 138,
-                "standard": 258,
-                "automation": 275,
-                "full": 296,
+                "inspect": 137,
+                "standard": 257,
+                "automation": 274,
+                "full": 290,
             },
         )
 
@@ -86,7 +86,6 @@ class ToolProfileCatalogTests(unittest.TestCase):
         for low_level in (
             "ExecCommand",
             "MemoryRemoteAlloc",
-            "ManageHideMainDriver",
             "ClickActiveWindow",
         ):
             self.assertNotIn(low_level, compact)
@@ -183,9 +182,6 @@ class ToolProfileCatalogTests(unittest.TestCase):
 
         for hidden in (
             "ExecCommand",
-            "ManageHideMainDriver",
-            "HideDebuggeeWithHideMain",
-            "UnhideDebuggeeWithHideMain",
             "MemoryRemoteAlloc",
             "MemoryRemoteFree",
             "LoadLibraryInDebuggee",
@@ -286,9 +282,7 @@ class ToolProfileCatalogTests(unittest.TestCase):
         effect("ImportAnalysisEvidence", "debugger.database.write", "dry_run")
         effect("ImportStaticAnnotations", "debugger.database.write", "dry_run")
         effect("SyncBreakpoints", "debugger.breakpoint.write", "apply")
-        effect("AttachToProcess", "kernel.driver.control", "use_hidemain")
         effect("LaunchFileUnderDebugger", "debuggee.module.inject", "use_scyllahide")
-        effect("LaunchFileUnderDebugger", "kernel.driver.control", "use_hidemain")
         effect("WaitForModuleLoad", "debuggee.execution", "auto_run")
         effect("WriteMiniDump", "debuggee.execution", "pause_if_running")
         effect("WriteMiniDump", "debuggee.execution", "resume_after")

@@ -137,7 +137,7 @@ def _compact_launch_result(payload: Any) -> Any:
         elif init.get(key) not in (None, ""):
             result[key] = init.get(key)
     protection: Dict[str, Any] = {}
-    for source, public_name in (("scyllaHide", "scyllaHide"), ("hideMain", "hideMain")):
+    for source, public_name in (("scyllaHide", "scyllaHide"),):
         item = init.get(source)
         if isinstance(item, dict):
             protection[public_name] = {

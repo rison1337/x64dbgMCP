@@ -215,7 +215,6 @@ def _one_arch(module: Any, arch: str, artifact_root: Path) -> dict[str, Any]:
             restart_debugger=True,
             stop_first=True,
             timeout_ms=30000,
-            use_hidemain="off",
         )
         if not isinstance(attach, dict) or not attach.get("ok"):
             raise RuntimeError(f"{arch} attach failed: {attach}")

@@ -237,19 +237,11 @@ def EnsureDebugger(
     desired_arch = _normalize_debugger_arch(arch)
     stop_result = None
     if restart:
-        hidemain_cleanup = None
-        cleanup_hidemain = globals().get("_cleanup_hidemain_target")
-        if callable(cleanup_hidemain):
-            try:
-                hidemain_cleanup = cleanup_hidemain()
-            except Exception as exc:
-                hidemain_cleanup = {"ok": False, "error": str(exc)}
         stop_result = _stop_debugger_processes(
             "auto", timeout_ms=min(max(timeout_ms, 0), 10000) or 10000
         )
         if isinstance(stop_result, dict):
             stop_result = dict(stop_result)
-            stop_result["hideMainCleanup"] = hidemain_cleanup
     active = _get_active_debugger_info()
     active_arch = str(active.get("arch") or "").lower()
     active_pid = int(active.get("pid") or 0)
@@ -349,7 +341,6 @@ def RestartDebugger(
         or _get_runtime_value("lastDebuggeePath")
         or ""
     )
-    previous_hidemain = _get_runtime_value("lastHideMain")
     if not prev_target:
         try:
             _st = _build_debug_state(
@@ -359,13 +350,6 @@ def RestartDebugger(
         except Exception:
             prev_target = ""
     _restore_pending_scyllahide_profile(force=True)
-    hidemain_cleanup = None
-    cleanup_hidemain = globals().get("_cleanup_hidemain_target")
-    if callable(cleanup_hidemain):
-        try:
-            hidemain_cleanup = cleanup_hidemain()
-        except Exception as exc:
-            hidemain_cleanup = {"ok": False, "error": str(exc)}
     desired_arch = _normalize_debugger_arch(arch)
     stop_timeout = min(max(timeout_ms, 0), 10000) or 10000
     stopped = _stop_debugger_processes("auto", timeout_ms=stop_timeout)
@@ -408,12 +392,6 @@ def RestartDebugger(
             "restart_debugger": False,
             "timeout_ms": min(max(timeout_ms, 0), 20000) or 20000,
             "stop_first": True,
-            "use_hidemain": (
-                "auto"
-                if isinstance(previous_hidemain, dict)
-                and int(previous_hidemain.get("pid") or 0) > 0
-                else "off"
-            ),
         }
         if previous_launch_spec.get("arguments"):
             relaunch_kwargs["arguments"] = list(previous_launch_spec.get("arguments") or [])
@@ -437,7 +415,6 @@ def RestartDebugger(
         payload["reload"] = relaunch
         payload["ok"] = bool(isinstance(relaunch, dict) and relaunch.get("ok"))
     payload["logPath"] = LOG_PATH
-    payload["hideMainCleanup"] = hidemain_cleanup
     return payload
 
 
@@ -752,89 +729,6 @@ def _summarize_launch_failure(target_path: str, init_result: Any):
     return error, hint
 
 
-def _prepare_hidemain_workflow(
-    mode: str = "off",
-    target_arch: str = "",
-    root: str = "",
-    allow_system_changes: bool = False,
-    allow_unsigned: bool = False,
-    acknowledge_kernel_risk: bool = False,
-) -> Dict[str, Any]:
-    requested = str(mode or "off").strip().lower()
-    if requested not in ("off", "auto", "force"):
-        return {"ok": False, "mode": requested, "error": f"Unknown HideMain mode: {mode}"}
-    if requested == "off":
-        return {
-            "ok": True,
-            "mode": requested,
-            "skipped": True,
-            "reason": "HideMain policy disabled.",
-        }
-    normalized_arch = str(target_arch or "").strip().lower()
-    if normalized_arch in ("x86", "x32"):
-        payload: Dict[str, Any] = {
-            "ok": requested != "force",
-            "mode": requested,
-            "skipped": requested != "force",
-            "unsupported": True,
-            "error": "HideMain safe-v2 supports x64 targets only.",
-        }
-        if payload.get("skipped"):
-            payload["reason"] = payload.pop("error")
-        return payload
-    prepare = globals().get("_prepare_hidemain_policy")
-    if not callable(prepare):
-        return {
-            "ok": requested != "force",
-            "mode": requested,
-            "skipped": requested != "force",
-            "error": "HideMain MCP extension is unavailable.",
-            "extension": dict(globals().get("_HIDEMAIN_TOOLS_STATUS") or {}),
-        }
-    return prepare(
-        mode=requested,
-        root=root,
-        allow_system_changes=allow_system_changes,
-        allow_unsigned=allow_unsigned,
-        acknowledge_kernel_risk=acknowledge_kernel_risk,
-    )
-
-
-def _apply_hidemain_workflow(
-    pid: int,
-    mode: str = "off",
-    root: str = "",
-    allow_system_changes: bool = False,
-    allow_unsigned: bool = False,
-    acknowledge_kernel_risk: bool = False,
-) -> Dict[str, Any]:
-    requested = str(mode or "off").strip().lower()
-    if requested == "off":
-        return {
-            "ok": True,
-            "mode": requested,
-            "skipped": True,
-            "reason": "HideMain policy disabled.",
-        }
-    apply_policy = globals().get("_apply_hidemain_policy")
-    if not callable(apply_policy):
-        return {
-            "ok": requested != "force",
-            "mode": requested,
-            "skipped": requested != "force",
-            "error": "HideMain MCP extension is unavailable.",
-            "extension": dict(globals().get("_HIDEMAIN_TOOLS_STATUS") or {}),
-        }
-    return apply_policy(
-        pid=int(pid or 0),
-        mode=requested,
-        root=root,
-        allow_system_changes=allow_system_changes,
-        allow_unsigned=allow_unsigned,
-        acknowledge_kernel_risk=acknowledge_kernel_risk,
-    )
-
-
 @mcp.tool()
 def LaunchFileUnderDebugger(
     exe_path: str,
@@ -843,13 +737,8 @@ def LaunchFileUnderDebugger(
     timeout_ms: int = 20000,
     retries: int = 5,
     stop_first: bool = True,
-    use_scyllahide: str = "auto",
+    use_scyllahide: str = "off",
     scyllahide_profile: str = "",
-    use_hidemain: str = "off",
-    hidemain_root: str = "",
-    hidemain_allow_system_changes: bool = False,
-    hidemain_allow_unsigned_driver: bool = False,
-    hidemain_acknowledge_kernel_risk: bool = False,
     advance_to_entry: bool = True,
     arguments: Optional[List[str]] = None,
     command_line: str = "",
@@ -873,15 +762,8 @@ def LaunchFileUnderDebugger(
         timeout_ms: Maximum total wait budget.
         retries: Maximum init attempts for the target.
         stop_first: When true, stop the active debug session before launching the target.
-        use_scyllahide: auto, off, or force.
+        use_scyllahide: off (default), auto (same as off), or force (explicit injection).
         scyllahide_profile: Optional explicit ScyllaHide profile.
-        use_hidemain: off, auto, or force. Default off. Auto only uses an
-            already-running driver; force fails before launch unless the safe-v2
-            x64-only driver is ready (or explicitly allowed to start).
-        hidemain_root: Optional HideMain distribution root (otherwise HIDEMAIN_ROOT).
-        hidemain_allow_system_changes: Allow starting an already-installed service.
-        hidemain_allow_unsigned_driver: Explicitly allow the supplied unsigned driver.
-        hidemain_acknowledge_kernel_risk: Acknowledge general kernel-driver/BSOD risk.
         arguments: Argument vector excluding argv[0].
         command_line: Explicit Windows command-line tail (mutually exclusive with arguments).
         working_directory: Target process current directory.
@@ -920,15 +802,6 @@ def LaunchFileUnderDebugger(
             "exePath": target_path,
             "logPath": LOG_PATH,
         })
-    requested_hidemain = str(use_hidemain or "off").strip().lower()
-    if requested_hidemain not in ("off", "auto", "force"):
-        return _launch_response({
-            "ok": False,
-            "exePath": target_path,
-            "error": f"Unknown HideMain mode: {use_hidemain}",
-            "hideMain": {"ok": False, "mode": requested_hidemain},
-            "logPath": LOG_PATH,
-        })
     desired_arch = _normalize_debugger_arch(arch, exe_path=target_path)
     ensure_result = EnsureDebugger(
         arch=desired_arch,
@@ -965,11 +838,6 @@ def LaunchFileUnderDebugger(
             stop_first=stop_first,
             use_scyllahide=use_scyllahide,
             scyllahide_profile=scyllahide_profile,
-            use_hidemain=use_hidemain,
-            hidemain_root=hidemain_root,
-            hidemain_allow_system_changes=hidemain_allow_system_changes,
-            hidemain_allow_unsigned_driver=hidemain_allow_unsigned_driver,
-            hidemain_acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
             arguments=arguments,
             command_line=command_line,
             working_directory=working_directory,
@@ -1071,13 +939,8 @@ def LaunchAndOpenDebuggee(
     timeout_ms: int = 20000,
     retries: int = 5,
     stop_first: bool = True,
-    use_scyllahide: str = "auto",
+    use_scyllahide: str = "off",
     scyllahide_profile: str = "",
-    use_hidemain: str = "off",
-    hidemain_root: str = "",
-    hidemain_allow_system_changes: bool = False,
-    hidemain_allow_unsigned_driver: bool = False,
-    hidemain_acknowledge_kernel_risk: bool = False,
     advance_to_entry: bool = True,
     arguments: Optional[List[str]] = None,
     command_line: str = "",
@@ -1106,13 +969,8 @@ def LaunchAndOpenDebuggee(
         timeout_ms: Maximum total wait budget.
         retries: Maximum init attempts for the target.
         stop_first: When true, stop the active debug session before opening the target.
-        use_scyllahide: auto, off, or force.
+        use_scyllahide: off (default), auto (same as off), or force (explicit injection).
         scyllahide_profile: Optional explicit ScyllaHide profile.
-        use_hidemain: off, auto, or force (default off).
-        hidemain_root: Optional HideMain distribution root.
-        hidemain_allow_system_changes: Allow starting an installed driver service.
-        hidemain_allow_unsigned_driver: Explicit unsigned-driver acknowledgement.
-        hidemain_acknowledge_kernel_risk: Explicit general kernel-driver/BSOD acknowledgement.
         advance_to_entry: When true (default), leave the target paused at its entry
             point after opening (see LaunchFileUnderDebugger).
         detail: summary or full. Empty inherits the active tool profile.
@@ -1126,11 +984,6 @@ def LaunchAndOpenDebuggee(
         "stop_first": stop_first,
         "use_scyllahide": use_scyllahide,
         "scyllahide_profile": scyllahide_profile,
-        "use_hidemain": use_hidemain,
-        "hidemain_root": hidemain_root,
-        "hidemain_allow_system_changes": hidemain_allow_system_changes,
-        "hidemain_allow_unsigned_driver": hidemain_allow_unsigned_driver,
-        "hidemain_acknowledge_kernel_risk": hidemain_acknowledge_kernel_risk,
         "advance_to_entry": advance_to_entry,
     }
     # Preserve the exact legacy delegation shape when no v2 launch options were
@@ -1531,11 +1384,6 @@ def AttachToProcess(
     restart_debugger: bool = False,
     stop_first: bool = True,
     timeout_ms: int = 20000,
-    use_hidemain: str = "off",
-    hidemain_root: str = "",
-    hidemain_allow_system_changes: bool = False,
-    hidemain_allow_unsigned_driver: bool = False,
-    hidemain_acknowledge_kernel_risk: bool = False,
 ) -> dict:
     """
     Attach x64dbg/x32dbg to an already-running process.
@@ -1547,26 +1395,12 @@ def AttachToProcess(
         restart_debugger: When true, restart the debugger before attach.
         stop_first: When true, stop the current debug session before attaching.
         timeout_ms: Maximum time to wait for the attach to complete.
-        use_hidemain: off, auto, or force (default off).
-        hidemain_root: Optional HideMain distribution root.
-        hidemain_allow_system_changes: Allow starting an installed driver service.
-        hidemain_allow_unsigned_driver: Explicit unsigned-driver acknowledgement.
-        hidemain_acknowledge_kernel_risk: Explicit general kernel-driver/BSOD acknowledgement.
     """
     target = _resolve_attach_target(pid=pid, exe_filter=exe_filter)
     if not target.get("ok"):
         payload = dict(target)
         payload["logPath"] = LOG_PATH
         return payload
-    requested_hidemain = str(use_hidemain or "off").strip().lower()
-    if requested_hidemain not in ("off", "auto", "force"):
-        return {
-            "ok": False,
-            "target": target,
-            "error": f"Unknown HideMain mode: {use_hidemain}",
-            "hideMain": {"ok": False, "mode": requested_hidemain},
-            "logPath": LOG_PATH,
-        }
     target_pid = int(target.get("pid") or 0)
     target_path = _repair_text_mojibake(str(target.get("imagePath") or "").strip())
     target_arch = str(target.get("arch") or "").strip().lower()
@@ -1605,25 +1439,6 @@ def AttachToProcess(
             "recoveryDebugger": recovery_result,
             "logPath": LOG_PATH,
         }
-    hidemain_prepare = _prepare_hidemain_workflow(
-        mode=use_hidemain,
-        target_arch=target_arch or desired_arch,
-        root=hidemain_root,
-        allow_system_changes=hidemain_allow_system_changes,
-        allow_unsigned=hidemain_allow_unsigned_driver,
-        acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
-    )
-    if str(use_hidemain or "off").strip().lower() == "force" and not hidemain_prepare.get("ok"):
-        return {
-            "ok": False,
-            "target": target,
-            "requestedArch": target_arch or desired_arch,
-            "ensureDebugger": ensure_result,
-            "recoveryDebugger": recovery_result,
-            "hideMain": hidemain_prepare,
-            "error": hidemain_prepare.get("error") or "HideMain force-mode preparation failed.",
-            "logPath": LOG_PATH,
-        }
     current_state = _build_debug_state(
         include_console=False, include_callstack=False, max_console_chars=0
     )
@@ -1641,17 +1456,8 @@ def AttachToProcess(
             or str(target.get("exe") or ""),
             lastDebuggeePath=target_path or _get_process_image_path(target_pid),
         )
-        hidemain_result = _apply_hidemain_workflow(
-            pid=target_pid,
-            mode=use_hidemain,
-            root=hidemain_root,
-            allow_system_changes=hidemain_allow_system_changes,
-            allow_unsigned=hidemain_allow_unsigned_driver,
-            acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
-        )
-        hidemain_required = str(use_hidemain or "off").strip().lower() == "force"
         return {
-            "ok": bool(not hidemain_required or hidemain_result.get("ok")),
+            "ok": True,
             "alreadyAttached": True,
             "target": target,
             "requestedArch": target_arch or desired_arch,
@@ -1659,11 +1465,8 @@ def AttachToProcess(
             "binding": binding,
             "ensureDebugger": ensure_result,
             "recoveryDebugger": recovery_result,
-            "hideMain": hidemain_result,
             "error": (
-                hidemain_result.get("error") or "HideMain force-mode application failed."
-                if hidemain_required and not hidemain_result.get("ok")
-                else None
+                None
             ),
             "logPath": LOG_PATH,
         }
@@ -1750,17 +1553,8 @@ def AttachToProcess(
                 arch=target_arch or desired_arch,
                 command=command,
             )
-            hidemain_result = _apply_hidemain_workflow(
-                pid=target_pid,
-                mode=use_hidemain,
-                root=hidemain_root,
-                allow_system_changes=hidemain_allow_system_changes,
-                allow_unsigned=hidemain_allow_unsigned_driver,
-                acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
-            )
-            hidemain_required = str(use_hidemain or "off").strip().lower() == "force"
             return {
-                "ok": bool(not hidemain_required or hidemain_result.get("ok")),
+                "ok": True,
                 "target": target,
                 "requestedArch": target_arch or desired_arch,
                 "attachResult": last_result,
@@ -1768,11 +1562,8 @@ def AttachToProcess(
                 "binding": binding,
                 "ensureDebugger": ensure_result,
                 "recoveryDebugger": recovery_result,
-                "hideMain": hidemain_result,
                 "error": (
-                    (hidemain_result.get("error") or "HideMain force-mode application failed.")
-                    if hidemain_required and not hidemain_result.get("ok")
-                    else None
+                    None
                 ),
                 "logPath": LOG_PATH,
             }
@@ -2744,24 +2535,10 @@ def GetDebuggerPluginStatus(
     """
     debugger_info = _get_active_debugger_info()
     target_path = _resolve_target_exe_path(exe_path)
-    hidemain_status = None
-    get_hidemain = globals().get("GetHideMainStatus")
-    if callable(get_hidemain):
-        try:
-            hidemain_status = get_hidemain(pid=pid)
-        except Exception as exc:
-            hidemain_status = {"ok": False, "error": str(exc)}
-    else:
-        hidemain_status = {
-            "ok": False,
-            "loaded": False,
-            "extension": dict(globals().get("_HIDEMAIN_TOOLS_STATUS") or {}),
-        }
     return {
         "ok": True,
         "activeDebugger": debugger_info,
         "scyllaHide": GetScyllaHideStatus(pid=pid, exe_path=target_path, arch=arch),
-        "hideMain": hidemain_status,
         "analysis": AnalyzeAntiDebugSurface(target_path) if target_path else None,
         "logPath": LOG_PATH,
     }
@@ -4060,7 +3837,12 @@ def _prepare_scyllahide_launch(
     exe_path: str, target_arch: str, use_scyllahide: str, scyllahide_profile: str
 ) -> Dict[str, Any]:
     dismiss_result = _dismiss_scyllahide_dialog(timeout_ms=300, poll_ms=75)
-    scylla_mode = str(use_scyllahide or "auto").strip().lower()
+    scylla_mode = str(use_scyllahide or "off").strip().lower()
+    if scylla_mode == "auto":
+        # Automatic injection is unsafe for arbitrary targets. In particular,
+        # third-party profiles can hook NtContinue and crash inside ntdll before
+        # MCP can observe or recover the debuggee. Injection is opt-in via force.
+        scylla_mode = "off"
     payload: Dict[str, Any] = {
         "ok": True,
         "skipped": True,
@@ -4192,7 +3974,15 @@ def _prepare_scyllahide_launch(
             payload["reason"] = "Analysis did not justify ScyllaHide for this target."
         return payload
     try:
-        set_result = _write_scyllahide_profile(config_path, chosen_profile or "Basic")
+        if status.get("guiPluginPresent"):
+            # Keep the GUI plugin from injecting the unsanitized profile first.
+            # MCP applies the requested profile through its isolated CLI backend.
+            profile_info = _read_scyllahide_profile(config_path)
+            if chosen_profile not in profile_info.get("profiles", []):
+                raise RuntimeError(f"Unknown ScyllaHide profile: {chosen_profile}")
+            set_result = _write_scyllahide_profile(config_path, "Disabled", allow_disabled=True)
+        else:
+            set_result = _write_scyllahide_profile(config_path, chosen_profile or "Basic")
     except Exception as e:
         return {
             "ok": False,
@@ -4227,6 +4017,7 @@ def _prepare_scyllahide_launch(
             "skipped": False,
             "preArmed": True,
             "reason": "ScyllaHide profile armed before init.",
+            "isolatedInjector": True,
             "originalProfile": original_profile,
             "setProfile": set_result,
             "logBookmark": log_bookmark,
@@ -4444,13 +4235,8 @@ def InitDebuggee(
     timeout_ms: int = 5000,
     retries: int = 5,
     stop_first: bool = False,
-    use_scyllahide: str = "auto",
+    use_scyllahide: str = "off",
     scyllahide_profile: str = "",
-    use_hidemain: str = "off",
-    hidemain_root: str = "",
-    hidemain_allow_system_changes: bool = False,
-    hidemain_allow_unsigned_driver: bool = False,
-    hidemain_acknowledge_kernel_risk: bool = False,
     arguments: Optional[List[str]] = None,
     command_line: str = "",
     working_directory: str = "",
@@ -4476,14 +4262,8 @@ def InitDebuggee(
         timeout_ms: Maximum total time to spend retrying.
         retries: Maximum number of init attempts.
         stop_first: When true, stop the current debug session before init.
-        use_scyllahide: "auto", "off", or "force". Auto only injects when analysis suggests anti-debug.
+        use_scyllahide: off (default), auto (same as off), or force (explicit injection).
         scyllahide_profile: Optional explicit ScyllaHide profile override.
-        use_hidemain: "off", "auto", or "force". Default off; auto never starts
-            the kernel driver, while force requires explicit safety acknowledgements.
-        hidemain_root: Optional HideMain distribution root.
-        hidemain_allow_system_changes: Allow starting an already-installed service.
-        hidemain_allow_unsigned_driver: Explicitly allow an unsigned driver start.
-        hidemain_acknowledge_kernel_risk: Acknowledge general kernel-driver/BSOD risk.
         arguments: Argument vector excluding argv[0]. Mutually exclusive with command_line.
         command_line: Explicit Windows command-line tail.
         working_directory: Current directory for the new process.
@@ -4498,16 +4278,6 @@ def InitDebuggee(
         capture_limit_bytes: Bounded pipe retention/queue capacity in bytes.
     """
     exe_path = _repair_text_mojibake(str(exe_path or "").strip())
-    requested_hidemain = str(use_hidemain or "off").strip().lower()
-    if requested_hidemain not in ("off", "auto", "force"):
-        return {
-            "ok": False,
-            "attempts": 0,
-            "exePath": exe_path,
-            "error": f"Unknown HideMain mode: {use_hidemain}",
-            "hideMain": {"ok": False, "mode": requested_hidemain},
-            "timedOut": False,
-        }
     launch_spec = _build_launch_spec(
         exe_path,
         arguments=arguments,
@@ -4677,27 +4447,6 @@ def InitDebuggee(
             )
     _restore_pending_scyllahide_profile(force=True)
 
-    hidemain_prepare = _prepare_hidemain_workflow(
-        mode=use_hidemain,
-        target_arch=target_arch or "auto",
-        root=hidemain_root,
-        allow_system_changes=hidemain_allow_system_changes,
-        allow_unsigned=hidemain_allow_unsigned_driver,
-        acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
-    )
-    if str(use_hidemain or "off").strip().lower() == "force" and not hidemain_prepare.get("ok"):
-        return {
-            "ok": False,
-            "attempts": 0,
-            "exePath": exe_path,
-            "targetArch": target_arch,
-            "state": _build_debug_state(
-                include_console=False, include_callstack=False, max_console_chars=0
-            ),
-            "hideMain": hidemain_prepare,
-            "error": hidemain_prepare.get("error") or "HideMain force-mode preparation failed.",
-            "timedOut": False,
-        }
 
     _clear_bound_session()
     launch_context = _capture_launch_context(exe_path, launch_spec=launch_spec)
@@ -4709,6 +4458,13 @@ def InitDebuggee(
     scylla_prepare = _prepare_scyllahide_launch(
         exe_path, target_arch or "auto", use_scyllahide, scyllahide_profile
     )
+    if not scylla_prepare.get("ok"):
+        return {
+            "ok": False,
+            "launched": False,
+            "scyllaHide": scylla_prepare,
+            "error": scylla_prepare.get("reason") or "ScyllaHide preparation failed.",
+        }
 
     launch_paths = (
         [exe_path]
@@ -4770,47 +4526,6 @@ def InitDebuggee(
                         "profile": scylla_payload.get("profile"),
                     }
                 target_pid = int(state.get("debuggeePid") or 0)
-                hidemain_payload = _apply_hidemain_workflow(
-                    pid=target_pid,
-                    mode=use_hidemain,
-                    root=hidemain_root,
-                    allow_system_changes=hidemain_allow_system_changes,
-                    allow_unsigned=hidemain_allow_unsigned_driver,
-                    acknowledge_kernel_risk=hidemain_acknowledge_kernel_risk,
-                )
-                hidemain_required = (
-                    str(use_hidemain or "off").strip().lower() == "force"
-                )
-                if hidemain_required and not hidemain_payload.get("ok"):
-                    binding = _bind_debuggee_session(
-                        pid=target_pid,
-                        image_path=exe_path,
-                        strict=True,
-                        source="InitDebuggee:HideMainFailed",
-                    )
-                    state = _refresh_state_after_session_binding(state)
-                    _log_event(
-                        "init_debuggee_hidemain_failed",
-                        exePath=exe_path,
-                        pid=target_pid,
-                        result=hidemain_payload,
-                    )
-                    return {
-                        "ok": False,
-                        "launched": True,
-                        "protectionFailed": True,
-                        "attempts": attempt,
-                        "initResult": last_result,
-                        "state": state,
-                        "binding": binding,
-                        "scyllaHide": scylla_payload,
-                        "hideMain": hidemain_payload,
-                        "error": (
-                            hidemain_payload.get("error")
-                            or "Target launched paused, but HideMain force-mode protection failed."
-                        ),
-                        "timedOut": False,
-                    }
                 if scylla_prepare.get("preArmed") and not scylla_prepare.get("skipped"):
                     _remember_runtime(
                         lastScyllaHide={
@@ -4846,6 +4561,7 @@ def InitDebuggee(
                     )
                     gui_prearm_available = bool(
                         prepared_status.get("guiPluginPresent")
+                        and not scylla_prepare.get("isolatedInjector")
                     )
                     if gui_prearm_available:
                         preparation = _advance_past_startup_pause(
@@ -4871,7 +4587,7 @@ def InitDebuggee(
                             "ok": True,
                             "skipped": True,
                             "reason": (
-                                "Optional GUI plugin is absent; injecting through "
+                                "Isolated backend selected; injecting through "
                                 "InjectorCLI while the target is paused."
                             ),
                         }
@@ -5024,7 +4740,6 @@ def InitDebuggee(
                             "state": failed_state,
                             "binding": binding,
                             "scyllaHide": scylla_payload,
-                            "hideMain": hidemain_payload,
                             "error": (
                                 "Target launched, but ScyllaHide force-mode "
                                 "injection could not be verified."
@@ -5054,7 +4769,6 @@ def InitDebuggee(
                     "state": state,
                     "binding": binding,
                     "scyllaHide": scylla_payload,
-                    "hideMain": hidemain_payload,
                     "timedOut": False,
                 }
             if time.time() >= deadline:
@@ -5075,7 +4789,6 @@ def InitDebuggee(
                 include_console=False, include_callstack=False, max_console_chars=0
             ),
             "scyllaHide": scylla_prepare if scylla_prepare.get("preArmed") else None,
-            "hideMain": hidemain_prepare,
             "dependencyDiagnostics": dependency_diagnostics,
             "hint": (
                 dependency_diagnostics.get("hint")

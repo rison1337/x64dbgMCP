@@ -89,7 +89,6 @@ def _run_and_pause(module: Any, arch: str, arguments: list[str]) -> dict[str, An
         retries=5,
         stop_first=True,
         use_scyllahide="off",
-        use_hidemain="off",
         advance_to_entry=True,
         arguments=arguments,
         working_directory=str(directory),

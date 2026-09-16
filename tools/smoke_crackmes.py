@@ -100,7 +100,6 @@ def run_smoke(root: Path, output_path: Path, include_derived: bool) -> int:
                 retries=2,
                 stop_first=True,
                 use_scyllahide="off",
-                use_hidemain="off",
             )
             dependency_diag = init.get("dependencyDiagnostics") if isinstance(init, dict) else {}
             item["initOk"] = bool(init.get("ok"))
