@@ -1,4 +1,6 @@
 import importlib.util
+import os
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -21,6 +23,13 @@ class SessionWorkflowTests(unittest.TestCase):
         cls.mod = _load_module()
 
     def setUp(self):
+        # These tests replace _list_processes with deterministic fixtures. Keep
+        # bridge discovery in a private directory so a concurrent live gate
+        # cannot mistake the fixture process list for the real debugger list
+        # and remove its authenticated descriptor.
+        self._localappdata = tempfile.TemporaryDirectory()
+        self._previous_localappdata = os.environ.get("LOCALAPPDATA")
+        os.environ["LOCALAPPDATA"] = self._localappdata.name
         self.originals = {
             "_list_processes": self.mod._list_processes,
             "_process_exists": self.mod._process_exists,
@@ -42,6 +51,11 @@ class SessionWorkflowTests(unittest.TestCase):
             self.mod._RUNTIME_STATE["lastDebuggeePath"] = None
 
     def tearDown(self):
+        if self._previous_localappdata is None:
+            os.environ.pop("LOCALAPPDATA", None)
+        else:
+            os.environ["LOCALAPPDATA"] = self._previous_localappdata
+        self._localappdata.cleanup()
         for name, value in self.originals.items():
             setattr(self.mod, name, value)
 
