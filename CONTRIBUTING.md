@@ -16,7 +16,7 @@ Thanks for your interest in improving **x64dbg MCP**!
 
 ## Development setup
 
-Windows + Python 3.10+.
+Windows + Python 3.11+.
 
 ```powershell
 pip install -r requirements.txt
@@ -36,7 +36,7 @@ default). Copy the built `MCPx64dbg.dp64` / `MCPx64dbg.dp32` into the
 ## Running tests
 
 ```powershell
-python -m pytest -q
+python -m unittest discover -s tests -v
 python tools/corpus.py all --arch all
 ```
 
@@ -57,8 +57,8 @@ Native transport/parser changes additionally require the deterministic parser
 unit/property suite in both architectures and the live framing gate:
 
 ```powershell
-cmake --build build-codex-vs2022\build64 --config Release --target bridge_core_native_tests
-cmake --build build-codex-vs2022\build32 --config Release --target bridge_core_native_tests
+cmake --build build\build64 --config Release --target bridge_core_native_tests
+cmake --build build\build32 --config Release --target bridge_core_native_tests
 python tools\run_live_release_matrix.py --arch all --case http_parser_adversarial
 
 # Bounded dispatcher, FIFO admission, responsiveness and overload cleanup
@@ -69,10 +69,10 @@ The typed launch contract has dedicated native and live gates. Build/run both
 architectures before changing launch or stream code:
 
 ```powershell
-& .\build\p0-x64\Release\bridge_core_native_tests.exe
-& .\build\p0-x64\Release\launch_runtime_native_tests.exe
-& .\build\p0-x86\Release\bridge_core_native_tests.exe
-& .\build\p0-x86\Release\launch_runtime_native_tests.exe
+& .\build\build64\Release\bridge_core_native_tests.exe
+& .\build\build64\Release\launch_runtime_native_tests.exe
+& .\build\build32\Release\bridge_core_native_tests.exe
+& .\build\build32\Release\launch_runtime_native_tests.exe
 python tools\run_live_release_matrix.py --arch all `
   --case launch_argv_env_cwd `
   --case launch_bytes_stdio `
@@ -95,8 +95,8 @@ Changes to exception disposition or history must also build and run
 matrix without skips:
 
 ```powershell
-cmake --build build\p0-x64 --config Release --target bridge_core_native_tests MCPx64dbg
-cmake --build build\p0-x86 --config Release --target bridge_core_native_tests MCPx64dbg
+cmake --build build\build64 --config Release --target bridge_core_native_tests MCPx64dbg
+cmake --build build\build32 --config Release --target bridge_core_native_tests MCPx64dbg
 python tools\run_live_release_matrix.py --arch all `
   --case exception_policy_first_chance `
   --case exception_policy_precedence `

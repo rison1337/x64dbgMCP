@@ -1,5 +1,5 @@
 # Runtime dependencies for the x64dbg MCP server (src/x64dbg.py, src/ext_tools.py).
-# Windows + Python 3.10+.
+# Windows + Python 3.11+.
 # The server uses the stable mcp.server.fastmcp package layout from the 1.x
 # line. MCP 2.x moved that import path and is not API-compatible yet.
 mcp>=1.28,<2.0

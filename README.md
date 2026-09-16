@@ -7,7 +7,7 @@ https://github.com/user-attachments/assets/07b813eb-4175-4f14-b21b-602548906398
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-2563eb.svg)](LICENSE)
 ![Windows](https://img.shields.io/badge/platform-Windows-0ea5e9)
 ![x86 + x64](https://img.shields.io/badge/debugger-x86%20%2B%20x64-8b5cf6)
-![CI](https://img.shields.io/badge/CI-passing-14b8a6)
+[![CI](https://github.com/rison1337/x64dbgMCP/actions/workflows/ci.yml/badge.svg)](https://github.com/rison1337/x64dbgMCP/actions/workflows/ci.yml)
 
 <a name="en"></a>
 <br>
@@ -187,6 +187,8 @@ Cursor, VS Code MCP, Windsurf and other stdio clients use the same
 ### Build from source
 
 ```powershell
+git clone https://github.com/rison1337/x64dbgMCP.git
+Set-Location x64dbgMCP
 cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
@@ -227,9 +229,10 @@ the IDA-side worker and cache model.
 - [Security model](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)
 
-CI covers the Python contract and both native plugin architectures; detailed
-live-gate output is retained in the GitHub Actions workflow logs. Analyze
-untrusted binaries inside a disposable VM.
+CI covers the Python contract and both native plugin architectures. The release
+workflow also checks the packaged stdio server and managed probes. Live debugger
+gates run locally and retain JSON reports; see [Contributing](CONTRIBUTING.md).
+Analyze untrusted binaries inside a disposable VM.
 
 GPL-3.0. Based on
 [x64dbgMCP by Sam W (Wasdubya)](https://github.com/Wasdubya/x64dbgMCP).
@@ -417,6 +420,8 @@ Cursor, VS Code MCP, Windsurf и другие stdio-клиенты исполь�
 ### Сборка из исходников
 
 ```powershell
+git clone https://github.com/rison1337/x64dbgMCP.git
+Set-Location x64dbgMCP
 cmake -S . -B build -DX64DBG_DOWNLOAD_SDK=ON
 cmake --build build --target all_plugins --config Release
 
@@ -454,9 +459,10 @@ x64dbg MCP не подменяет IDA и не пишет в случайную 
 - [Модель безопасности](SECURITY.md)
 - [Участие в разработке](CONTRIBUTING.md)
 
-CI проверяет Python-контракт и native-плагины обеих архитектур; подробный
-live-gate вывод сохраняется в логах GitHub Actions. Неизвестные бинарники
-анализируйте в одноразовой VM.
+CI проверяет Python-контракт и native-плагины обеих архитектур. Release workflow
+также проверяет stdio-сервер и managed probes из собранного архива. Live-проверки
+debugger выполняются локально и сохраняют JSON-отчёты; см. [участие в разработке](CONTRIBUTING.md).
+Неизвестные бинарники анализируйте в одноразовой VM.
 
 GPL-3.0. Проект основан на
 [x64dbgMCP Sam W (Wasdubya)](https://github.com/Wasdubya/x64dbgMCP).

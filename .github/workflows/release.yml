@@ -55,10 +55,12 @@ jobs:
           $runtime = Join-Path $stage "runtime"
           $plugins = Join-Path $stage "plugins"
           New-Item -ItemType Directory -Force -Path $runtime,$plugins | Out-Null
-          Copy-Item requirements.txt,LICENSE,NOTICE,README.md -Destination $runtime
+          Copy-Item requirements.txt,LICENSE,NOTICE,README.md,SECURITY.md,CONTRIBUTING.md,CODE_OF_CONDUCT.md -Destination $runtime
+          Copy-Item docs -Destination $runtime -Recurse
           Copy-Item src -Destination $runtime -Recurse
           $managedProbe = Join-Path $runtime "tools\bin\managed_probe"
           New-Item -ItemType Directory -Force -Path $managedProbe | Out-Null
+          Copy-Item tools\ida_evidence_coordinator.py,tools\managed_ida_coordinator.py -Destination (Join-Path $runtime "tools")
           Copy-Item tools\bin\managed_probe\x64 -Destination $managedProbe -Recurse
           Copy-Item tools\bin\managed_probe\x86 -Destination $managedProbe -Recurse
           Get-ChildItem $runtime -Recurse -Directory -Filter "__pycache__" |
@@ -106,6 +108,12 @@ jobs:
             (Join-Path $runtime "src\mcp_stdio_launcher.py"),
             (Join-Path $runtime "src\x64dbg.py"),
             (Join-Path $runtime "requirements.txt"),
+            (Join-Path $runtime "docs\TOOL_REFERENCE.md"),
+            (Join-Path $runtime "docs\hero.svg"),
+            (Join-Path $runtime "SECURITY.md"),
+            (Join-Path $runtime "CONTRIBUTING.md"),
+            (Join-Path $runtime "tools\ida_evidence_coordinator.py"),
+            (Join-Path $runtime "tools\managed_ida_coordinator.py"),
             (Join-Path $runtime "tools\bin\managed_probe\x64\x64dbg.ManagedProbe.exe"),
             (Join-Path $runtime "tools\bin\managed_probe\x64\hostfxr.dll"),
             (Join-Path $runtime "tools\bin\managed_probe\x64\coreclr.dll"),
@@ -146,6 +154,10 @@ jobs:
           $python = Join-Path $venv "Scripts\python.exe"
           & $python -m pip install --disable-pip-version-check -r (Join-Path $runtime "requirements.txt")
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($coordinator in @("ida_evidence_coordinator.py", "managed_ida_coordinator.py")) {
+            & $python (Join-Path $runtime "tools\$coordinator") --help
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
           $env:X64DBG_MCP_TOOL_PROFILE = "compact"
           & $python (Join-Path $PWD "tools\smoke_stdio_clients.py") `
@@ -168,6 +180,7 @@ jobs:
             - `plugins\MCPx64dbg.dp32` → `<your-x64dbg-root>\x32\plugins\`
             - `runtime\src` + `runtime\requirements.txt`
             - self-contained x64/x86 managed probes under `runtime\tools\bin\managed_probe`
+            - IDA evidence coordinators, tool reference and documentation under `runtime`
 
             Extract the bundle, copy both plugins, create a Python 3.11+
             environment inside `runtime`, and use the Codex, Claude Code or

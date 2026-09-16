@@ -99,8 +99,8 @@ def main(argv: list[str] | None = None) -> int:
             [python, "tools/generate_tool_reference.py", "--check"],
             60,
         ),
-        ("native-x64", ["ctest", "--test-dir", "build/p0-x64", "-C", "Release", "--output-on-failure"], 120),
-        ("native-x86", ["ctest", "--test-dir", "build/p0-x86", "-C", "Release", "--output-on-failure"], 120),
+        ("native-x64", ["ctest", "--test-dir", "build/build64", "-C", "Release", "--output-on-failure", "--no-tests=error"], 120),
+        ("native-x86", ["ctest", "--test-dir", "build/build32", "-C", "Release", "--output-on-failure", "--no-tests=error"], 120),
     ]
     if not args.skip_live:
         commands.extend(
