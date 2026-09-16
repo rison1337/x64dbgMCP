@@ -46,7 +46,7 @@ class ScyllaInjectorTests(unittest.TestCase):
             self.assertEqual(seen["antiAttach"], "0")
             self.assertEqual(config.read_bytes(), original)
             self.assertTrue(seen["exists_during_run"])
-            self.assertEqual(seen["command"][1:], ["pid:1234", str(hook), "nowait"])
+            self.assertEqual(seen["command"][1:], ["pid:1234", str(hook.resolve()), "nowait"])
             self.assertFalse(any(root.glob("scylla-injector-*")))
 
     def test_zero_exit_without_terminal_success_is_rejected(self):
