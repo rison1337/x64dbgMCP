@@ -1,0 +1,48 @@
+name: Publish to MCP Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify released package
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import urllib.request
+          from pathlib import Path
+
+          server = json.loads(Path('server.json').read_text())
+          package = server['packages'][0]
+          prefix = 'https://github.com/rison1337/x64dbgMCP/releases/download/'
+          assert package['identifier'].startswith(prefix)
+          with urllib.request.urlopen(package['identifier']) as response:
+              actual = hashlib.file_digest(response, 'sha256').hexdigest()
+          assert actual == package['fileSha256'], 'Release package checksum mismatch'
+          print('Release package SHA-256 verified')
+          PY
+
+      - name: Install pinned publisher
+        run: |
+          curl --fail --location --retry 3 --output publisher.tar.gz https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz
+          echo 'a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  publisher.tar.gz' | sha256sum --check
+          tar -xzf publisher.tar.gz mcp-publisher
+
+      - name: Authenticate with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish verified release
+        run: ./mcp-publisher publish server.json

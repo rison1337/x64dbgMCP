@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.rison1337/x64dbg-mcp",
+  "title": "x64dbg MCP",
+  "description": "Windows x64dbg/x32dbg debugging with guarded sessions, breakpoints, memory and runtime evidence.",
+  "version": "0.1.9",
+  "repository": {
+    "url": "https://github.com/rison1337/x64dbgMCP",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/rison1337/x64dbgMCP/releases/download/v0.1.9/x64dbg-mcp-v0.1.9.mcpb",
+      "fileSha256": "0d6c6515135e75baa0fcfd1348992679445a36cb0aa0aa7f049a41f51eb179db",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
